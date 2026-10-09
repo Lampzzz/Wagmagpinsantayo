@@ -14,6 +14,7 @@ import {
   setNotificationHandler,
   type NotificationPermissionsStatus,
   type NotificationResponse,
+  type SchedulableNotificationTriggerInput,
 } from 'expo-notifications';
 import { Platform } from 'react-native';
 
@@ -90,31 +91,57 @@ type NotificationInput = {
   identifier: string;
   title: string;
   body: string;
-  /** Epoch milliseconds. Must be in the future. */
+  /**
+   * Epoch milliseconds. A one-off notification fires then, so it must be in the future.
+   * A daily one uses only its local hour and minute.
+   */
   at: number;
+  /**
+   * `daily` fires every day at the hour and minute of `at`, starting the next time that
+   * hour and minute come round (the phone can't start a daily notification any later).
+   * It stays scheduled after it fires, until it's cancelled. Leave it out for a one-off.
+   */
+  repeat?: 'daily';
   data: NotificationData;
 };
 
 /**
- * Schedules a one-off notification that fires even when the app is closed.
- * Refuses a past time: iOS would throw and Android would drop it silently.
+ * Schedules a notification that fires even when the app is closed: once, or every
+ * day with `repeat: 'daily'`. Refuses a past time for a one-off notification: iOS
+ * would throw and Android would drop it silently.
  */
 export async function scheduleNotification({
   identifier,
   title,
   body,
   at,
+  repeat,
   data,
 }: NotificationInput): Promise<string> {
   if (IS_WEB) throw new Error('Notifications are not available on the web.');
-  if (at <= Date.now()) throw new Error('A notification must be scheduled in the future.');
+  if (repeat !== 'daily' && at <= Date.now()) {
+    throw new Error('A notification must be scheduled in the future.');
+  }
   await configureNotifications();
   await cancelScheduledNotificationAsync(identifier);
   return scheduleNotificationAsync({
     identifier,
     content: { title, body, data, sound: 'default' },
-    trigger: { type: SchedulableTriggerInputTypes.DATE, date: at, channelId: CHANNEL_ID },
+    trigger: toTrigger(at, repeat),
   });
+}
+
+function toTrigger(at: number, repeat: 'daily' | undefined): SchedulableNotificationTriggerInput {
+  if (repeat !== 'daily') {
+    return { type: SchedulableTriggerInputTypes.DATE, date: at, channelId: CHANNEL_ID };
+  }
+  const time = new Date(at);
+  return {
+    type: SchedulableTriggerInputTypes.DAILY,
+    hour: time.getHours(),
+    minute: time.getMinutes(),
+    channelId: CHANNEL_ID,
+  };
 }
 
 /** Cancels a pending notification. Resolves even if there is none. */

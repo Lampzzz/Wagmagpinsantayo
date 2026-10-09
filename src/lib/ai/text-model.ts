@@ -32,7 +32,7 @@ export type TextTask = {
 // Tasks run one at a time so the model is never loaded twice.
 let queue: Promise<unknown> = Promise.resolve();
 
-export function generateText(task: TextTask): Promise<string> {
+function generateText(task: TextTask): Promise<string> {
   const run = queue.then(() => runTextTask(task));
   queue = run.catch(() => undefined);
   return run;

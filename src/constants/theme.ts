@@ -82,8 +82,6 @@ export const SHADOWS = {
   soft: { boxShadow: '0px 2px 8px rgba(122, 74, 30, 0.10)' },
   /** A warm glow under mango buttons. */
   primary: { boxShadow: '0px 4px 14px rgba(214, 140, 0, 0.30)' },
-  /** The tab bar, cast upward. */
-  bar: { boxShadow: '0px -4px 24px rgba(122, 74, 30, 0.08)' },
 } as const;
 
 export const FONTS = {

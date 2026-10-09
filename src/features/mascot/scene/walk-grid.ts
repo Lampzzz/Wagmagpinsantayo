@@ -177,7 +177,7 @@ const COST = buildCosts();
 const OPEN: number[] = [];
 COST.forEach((c, i) => c && OPEN.push(i));
 
-export function isOpen(x: number, z: number) {
+function isOpen(x: number, z: number) {
   const cell = cellAt(x, z);
   return cell >= 0 && COST[cell] > 0;
 }

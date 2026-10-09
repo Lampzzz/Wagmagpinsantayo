@@ -176,7 +176,7 @@ export const HEAD_DEPTH = 0.92;
 const CURL_TURN = -0.84;
 
 /** Head radius at height y above its widest point (below the curl). */
-export function headRadiusAt(y: number) {
+function headRadiusAt(y: number) {
   if (y <= 0) {
     // Squarish below, so the cheeks stay full down to the collar.
     const d = Math.min(-y / CHIN_DROP, 1);

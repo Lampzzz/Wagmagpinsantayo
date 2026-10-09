@@ -5,7 +5,7 @@ export function isEmptyNote({ title, body }: NoteContent): boolean {
   return title.trim() === '' && body.trim() === '';
 }
 
-export function isSameContent(a: NoteContent, b: NoteContent): boolean {
+function isSameContent(a: NoteContent, b: NoteContent): boolean {
   return a.title === b.title && a.body === b.body;
 }
 

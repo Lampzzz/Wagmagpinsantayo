@@ -6,8 +6,8 @@ import type { NoteContent } from './types';
 export type SummaryReply = { bullets: string[] };
 
 /** A summary needs at least this many points to be worth showing. */
-export const MIN_SUMMARY_BULLETS = 2;
-export const MAX_SUMMARY_BULLETS = 5;
+const MIN_SUMMARY_BULLETS = 2;
+const MAX_SUMMARY_BULLETS = 5;
 
 // "- ", "* ", "• ", "1. " or "2) " at the start of a bullet. A space must follow,
 // so "2.5 kg" keeps its number.

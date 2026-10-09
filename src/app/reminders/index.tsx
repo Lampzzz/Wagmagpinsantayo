@@ -1,13 +1,14 @@
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { COLORS } from '@/constants/theme';
 import { ReminderList } from '@/features/reminders';
 
-export default function RemindersScreen() {
+export default function RemindersRoute() {
   return (
-    <View style={styles.container}>
+    <SafeAreaView edges={['bottom']} style={styles.container}>
       <ReminderList />
-    </View>
+    </SafeAreaView>
   );
 }
 

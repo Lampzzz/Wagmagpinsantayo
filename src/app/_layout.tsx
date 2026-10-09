@@ -36,7 +36,12 @@ export default function RootLayout() {
             contentStyle: { backgroundColor: COLORS.background },
           }}
         >
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          {/* Home is the island, full screen, with no tab bar: its ☰ menu opens everything else. */}
+          <Stack.Screen name="index" options={{ title: 'Home', headerShown: false }} />
+          <Stack.Screen name="conversations/index" options={{ title: 'Conversations' }} />
+          <Stack.Screen name="journal/index" options={{ title: 'Journal' }} />
+          <Stack.Screen name="tasks/index" options={{ title: 'Tasks' }} />
+          <Stack.Screen name="reminders/index" options={{ title: 'Reminders' }} />
           <Stack.Screen name="notes/new" options={{ title: 'New note' }} />
           <Stack.Screen name="notes/[id]" options={{ title: 'Note' }} />
           <Stack.Screen

@@ -11,6 +11,8 @@ import type { AiAvailability } from '@/features/ai-setup';
 import { useDictation, type DictationState } from '@/hooks/use-dictation';
 import { stopSpeaking } from '@/lib/audio/speak';
 
+import { parseEmergency } from '../api/parse-emergency';
+
 // Long enough for any request; stops a forgotten mic from listening on.
 const MAX_RECORDING_MS = 30_000;
 const MAX_MESSAGE_LENGTH = 500;
@@ -29,10 +31,12 @@ export function ChatComposer({ busy, voice, onSend }: ChatComposerProps) {
   const { state, start, stop, reset } = useDictation();
   const listening = state.phase === 'listening';
   const recording = listening || state.phase === 'loading' || state.phase === 'transcribing';
+  // While a reply is on its way only a call for help can be sent: it can't wait.
+  const blocked = busy && parseEmergency(text) === null;
 
   const sendText = () => {
     const trimmed = text.trim();
-    if (!trimmed || busy || recording) return;
+    if (!trimmed || blocked || recording) return;
     setText('');
     onSend(trimmed, false);
   };
@@ -108,7 +112,7 @@ export function ChatComposer({ busy, voice, onSend }: ChatComposerProps) {
           variant="primary"
           icon={<Icon ios="arrow.up" android="arrow_upward" color={COLORS.onPrimary} />}
           onPress={sendText}
-          disabled={busy || recording || text.trim() === ''}
+          disabled={blocked || recording || text.trim() === ''}
         />
       </View>
     </View>

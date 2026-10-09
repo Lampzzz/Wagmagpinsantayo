@@ -2,11 +2,14 @@ import { useCallback, useRef, useState } from 'react';
 import { AccessibilityInfo } from 'react-native';
 
 import { useAiAvailability } from '@/features/ai-setup';
+import { confirmEmergencyCall } from '@/features/menu';
 import { speak, stopSpeaking } from '@/lib/audio/speak';
 
 import { createAssistantDeps } from '../api/assistant-deps';
 import { composeMessage } from '../api/compose-reply';
+import { parseEmergency } from '../api/parse-emergency';
 import { runTurn } from '../api/run-turn';
+import { saveToHistory } from '../history/history-store';
 import type { AssistantReply, ConversationState, PickOption, TurnInput } from '../types';
 
 /**
@@ -22,7 +25,9 @@ export type ChatMessage =
 /**
  * The conversation for this session. Typed text, speech and taps on a reply's
  * buttons all go through `runTurn`. Each call resolves with the reply, or with null
- * when nothing was sent because another message was still being answered.
+ * when nothing was sent because another message was still being answered; a call for
+ * help sent then still brings up the emergency call prompt at once.
+ * Every line shown, yours and Pinsan's, is also kept in the history on the phone.
  */
 export function useAssistant() {
   const availability = useAiAvailability();
@@ -35,12 +40,18 @@ export function useAssistant() {
   const submit = useCallback(
     async (input: TurnInput, shown: string, spoken: boolean): Promise<AssistantReply | null> => {
       // One message at a time: the model is slow, and answers depend on order.
-      if (working.current) return null;
+      if (working.current) {
+        // Except a call for help, which can't wait for a slow answer: offer to call right away.
+        if (input.kind === 'text' && parseEmergency(input.text)) confirmEmergencyCall();
+        return null;
+      }
       working.current = true;
       setBusy(true);
       stopSpeaking();
       const said: ChatMessage = { id: String(nextId.current++), from: 'user', text: shown, spoken };
       setMessages((previous) => [...previous, said]);
+      // Fire and forget: a failed save never holds up or breaks the turn.
+      saveToHistory({ role: 'user', text: shown, spoken });
 
       let reply: AssistantReply;
       try {
@@ -56,6 +67,7 @@ export function useAssistant() {
       }
       const answer: ChatMessage = { id: String(nextId.current++), from: 'assistant', reply };
       setMessages((previous) => [...previous, answer]);
+      saveToHistory({ role: 'pinsan', text: reply.text, spoken: false });
       if (spoken && READ_REPLIES_ALOUD) speak(reply.speech);
       else AccessibilityInfo.announceForAccessibility(reply.speech);
       working.current = false;

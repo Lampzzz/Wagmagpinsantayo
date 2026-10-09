@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, type PressableProps } from 'react-native';
 
-import { COLORS, RADII } from '@/constants/theme';
+import { COLORS, PRESSED_SCALE, RADII, SHADOWS } from '@/constants/theme';
 
 type IconButtonProps = Omit<PressableProps, 'children'> & {
   /** Read by screen readers, since the button shows only an icon. */
   accessibilityLabel: string;
+  /** Tint it `onPrimary` on primary and danger, `text` on plain. */
   icon: ReactNode;
   variant?: 'primary' | 'plain' | 'danger';
 };
@@ -41,15 +42,20 @@ const styles = StyleSheet.create({
   },
   primary: {
     backgroundColor: COLORS.primary,
+    ...SHADOWS.primary,
   },
   plain: {
     backgroundColor: COLORS.surface,
+    borderWidth: 1.5,
+    borderColor: COLORS.borderStrong,
+    ...SHADOWS.soft,
   },
+  // `danger` is for text; this lighter red still gives an ink or white icon 3.8:1.
   danger: {
-    backgroundColor: COLORS.danger,
+    backgroundColor: COLORS.dangerFill,
   },
   pressed: {
-    opacity: 0.8,
+    transform: [{ scale: PRESSED_SCALE }],
   },
   disabled: {
     opacity: 0.4,

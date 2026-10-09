@@ -1,6 +1,6 @@
 import { StyleSheet, Text } from 'react-native';
 
-import { COLORS, FONT_SIZES, RADII, SPACING } from '@/constants/theme';
+import { COLORS, FONT_SIZES, FONTS, RADII, SPACING } from '@/constants/theme';
 
 type BadgeProps = {
   label: string;
@@ -16,15 +16,15 @@ const styles = StyleSheet.create({
   base: {
     alignSelf: 'flex-start',
     overflow: 'hidden',
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: 2,
-    borderRadius: RADII.sm,
+    paddingHorizontal: SPACING.sm + SPACING.xs,
+    paddingVertical: SPACING.xs,
+    borderRadius: RADII.pill,
+    fontFamily: FONTS.bodyBold,
     fontSize: FONT_SIZES.caption,
-    fontWeight: '600',
   },
   neutral: {
-    backgroundColor: COLORS.surface,
-    color: COLORS.textMuted,
+    backgroundColor: COLORS.surfaceMuted,
+    color: COLORS.text,
   },
   warning: {
     backgroundColor: COLORS.warningSurface,

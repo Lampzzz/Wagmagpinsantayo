@@ -24,13 +24,14 @@ export function ProgressBar({ progress, accessibilityLabel }: ProgressBarProps) 
 
 const styles = StyleSheet.create({
   track: {
-    height: 8,
+    height: 12,
     borderRadius: RADII.pill,
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.border,
     overflow: 'hidden',
   },
   fill: {
     height: '100%',
+    borderRadius: RADII.pill,
     backgroundColor: COLORS.primary,
   },
 });

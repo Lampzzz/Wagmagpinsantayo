@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 
-import { COLORS, FONT_SIZES, RADII, SPACING } from '@/constants/theme';
+import { COLORS, FONT_SIZES, FONTS, RADII, SPACING } from '@/constants/theme';
 
 type TextFieldProps = TextInputProps & {
   label: string;
@@ -17,8 +18,21 @@ export function TextField({
   invalid = false,
   style,
   multiline,
+  onFocus,
+  onBlur,
   ...rest
 }: TextFieldProps) {
+  const [focused, setFocused] = useState(false);
+
+  const handleFocus: TextInputProps['onFocus'] = (event) => {
+    setFocused(true);
+    onFocus?.(event);
+  };
+  const handleBlur: TextInputProps['onBlur'] = (event) => {
+    setFocused(false);
+    onBlur?.(event);
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.label}>{label}</Text>
@@ -26,9 +40,19 @@ export function TextField({
         accessibilityLabel={label}
         accessibilityHint={note}
         placeholderTextColor={COLORS.textMuted}
+        cursorColor={COLORS.text}
+        selectionColor={COLORS.primary}
         multiline={multiline}
         textAlignVertical={multiline ? 'top' : 'center'}
-        style={[styles.input, multiline && styles.multiline, invalid && styles.invalidInput, style]}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        style={[
+          styles.input,
+          multiline && styles.multiline,
+          focused && styles.focusedInput,
+          invalid && styles.invalidInput,
+          style,
+        ]}
         {...rest}
       />
       {note ? (
@@ -45,27 +69,38 @@ const styles = StyleSheet.create({
     gap: SPACING.xs,
   },
   label: {
+    marginStart: SPACING.xs,
+    fontFamily: FONTS.bodyBold,
     fontSize: FONT_SIZES.caption,
-    fontWeight: '600',
     color: COLORS.textMuted,
   },
   input: {
-    minHeight: 48,
+    minHeight: 52,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
-    borderRadius: RADII.md,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    borderRadius: RADII.lg,
+    borderWidth: 1.5,
+    borderColor: COLORS.borderStrong,
+    backgroundColor: COLORS.surface,
+    fontFamily: FONTS.body,
     fontSize: FONT_SIZES.body,
     color: COLORS.text,
   },
   multiline: {
-    minHeight: 96,
+    minHeight: 112,
+    paddingTop: 14,
+    paddingBottom: 14,
+    lineHeight: 22,
+  },
+  focusedInput: {
+    borderColor: COLORS.coral,
   },
   invalidInput: {
     borderColor: COLORS.warning,
   },
   note: {
+    marginStart: SPACING.xs,
+    fontFamily: FONTS.body,
     fontSize: FONT_SIZES.caption,
     color: COLORS.textMuted,
   },

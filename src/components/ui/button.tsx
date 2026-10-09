@@ -1,7 +1,15 @@
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, type PressableProps } from 'react-native';
 
-import { COLORS, FONT_SIZES, RADII, SPACING } from '@/constants/theme';
+import {
+  COLORS,
+  FONT_SIZES,
+  FONTS,
+  PRESSED_SCALE,
+  RADII,
+  SHADOWS,
+  SPACING,
+} from '@/constants/theme';
 
 type ButtonProps = Omit<PressableProps, 'children'> & {
   label: string;
@@ -10,6 +18,7 @@ type ButtonProps = Omit<PressableProps, 'children'> & {
   icon?: ReactNode;
 };
 
+/** A big rounded pill: mango with ink text, or white with an outline for the ghost variant. */
 export function Button({
   label,
   variant = 'primary',
@@ -42,9 +51,9 @@ export function Button({
 
 const styles = StyleSheet.create({
   base: {
-    minHeight: 48,
+    minHeight: 52,
     paddingHorizontal: SPACING.lg,
-    borderRadius: RADII.md,
+    borderRadius: RADII.pill,
     flexDirection: 'row',
     gap: SPACING.sm,
     alignItems: 'center',
@@ -52,21 +61,22 @@ const styles = StyleSheet.create({
   },
   primary: {
     backgroundColor: COLORS.primary,
+    ...SHADOWS.primary,
   },
   ghost: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1.5,
+    borderColor: COLORS.borderStrong,
   },
   pressed: {
-    opacity: 0.8,
+    transform: [{ scale: PRESSED_SCALE }],
   },
   disabled: {
     opacity: 0.5,
   },
   label: {
+    fontFamily: FONTS.display,
     fontSize: FONT_SIZES.body,
-    fontWeight: '600',
     color: COLORS.text,
   },
   primaryLabel: {

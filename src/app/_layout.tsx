@@ -7,6 +7,7 @@ import { LogBox, StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 
+import { COLORS, FONT_SIZES, FONTS } from '@/constants/theme';
 import { ReminderAlerts } from '@/features/reminders';
 
 // React Three Fiber 9.8 still uses THREE.Clock internally. Nothing to fix on our side, and the
@@ -22,7 +23,19 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={styles.root}>
       <KeyboardProvider>
-        <Stack>
+        <Stack
+          screenOptions={{
+            headerStyle: { backgroundColor: COLORS.background },
+            headerShadowVisible: false,
+            headerTintColor: COLORS.text,
+            headerTitleStyle: {
+              fontFamily: FONTS.display,
+              fontSize: FONT_SIZES.title,
+              color: COLORS.text,
+            },
+            contentStyle: { backgroundColor: COLORS.background },
+          }}
+        >
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="notes/new" options={{ title: 'New note' }} />
           <Stack.Screen name="notes/[id]" options={{ title: 'Note' }} />
@@ -37,6 +50,18 @@ export default function RootLayout() {
           <Stack.Screen
             name="ai-setup"
             options={{ title: 'On-device AI', presentation: 'modal' }}
+          />
+          <Stack.Screen
+            name="extract-tasks"
+            options={{
+              title: 'Review tasks',
+              presentation: 'formSheet',
+              sheetAllowedDetents: [0.5, 1],
+              sheetCornerRadius: 28,
+              sheetGrabberVisible: true,
+              // Android sheets have no native header, so the sheet draws its own title.
+              headerShown: false,
+            }}
           />
           <Stack.Screen name="studio" options={{ headerShown: false }} />
         </Stack>

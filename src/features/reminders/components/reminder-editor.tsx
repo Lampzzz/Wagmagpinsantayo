@@ -7,6 +7,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   View,
 } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
@@ -29,10 +30,11 @@ import {
 } from '@/constants/theme';
 import { useNow } from '@/hooks/use-now';
 import { capitalize } from '@/utils/capitalize';
-import { formatWhen } from '@/utils/format-when';
+import { formatDay, formatTime, formatWhen } from '@/utils/format-when';
 import { parseId } from '@/utils/parse-id';
 
 import { isReminderPastDue } from '../api/group-reminders';
+import { nextDailyOccurrence } from '../api/repeat-rules';
 import {
   createReminder,
   deleteReminder,
@@ -111,6 +113,7 @@ function ReminderForm({ reminder, taskId, onClose }: ReminderFormProps) {
   );
   const [title, setTitle] = useState(reminder?.title ?? '');
   const [whenText, setWhenText] = useState(initialWhen);
+  const [repeatDaily, setRepeatDaily] = useState(reminder?.repeat === 'daily');
   const [saving, setSaving] = useState(false);
   const newTaskTitle = useTaskTitle(reminder ? null : taskId, setTitle);
 
@@ -128,13 +131,19 @@ function ReminderForm({ reminder, taskId, onClose }: ReminderFormProps) {
   const save = async () => {
     if (!canSave || whenInput.kind !== 'ok') return;
     setSaving(true);
+    const repeat = repeatDaily ? 'daily' : null;
     try {
       const saved = reminder
         ? await updateReminder(
             reminder.id,
-            unchanged ? { title } : { title, scheduledAt: whenInput.at },
+            unchanged ? { title, repeat } : { title, scheduledAt: whenInput.at, repeat },
           )
-        : await createReminder({ title, scheduledAt: whenInput.at, taskId });
+        : await createReminder({
+            title,
+            scheduledAt: whenInput.at,
+            repeat: repeat ?? undefined,
+            taskId,
+          });
       explainAlert(saved.alert, onClose);
     } catch {
       setSaving(false);
@@ -213,6 +222,12 @@ function ReminderForm({ reminder, taskId, onClose }: ReminderFormProps) {
             input={whenInput}
             now={now}
           />
+          <RepeatSwitch
+            on={repeatDaily}
+            onChange={setRepeatDaily}
+            firstAt={whenInput.kind === 'ok' ? whenInput.at : null}
+            now={now}
+          />
           {linkedTaskId !== null && linkedTaskTitle !== null && (
             <Pressable
               accessibilityRole="button"
@@ -227,9 +242,18 @@ function ReminderForm({ reminder, taskId, onClose }: ReminderFormProps) {
             </Pressable>
           )}
           {reminder?.status === 'scheduled' && (
+            // A daily reminder that's done or dismissed only skips today.
             <View style={styles.statusActions}>
-              <Button label="Mark as done" variant="ghost" onPress={() => close('completed')} />
-              <Button label="Dismiss" variant="ghost" onPress={() => close('dismissed')} />
+              <Button
+                label={reminder.repeat === 'daily' ? 'Done for today' : 'Mark as done'}
+                variant="ghost"
+                onPress={() => close('completed')}
+              />
+              <Button
+                label={reminder.repeat === 'daily' ? 'Skip today' : 'Dismiss'}
+                variant="ghost"
+                onPress={() => close('dismissed')}
+              />
               <Button label="Cancel reminder" variant="ghost" onPress={() => close('cancelled')} />
             </View>
           )}
@@ -273,6 +297,52 @@ function ReminderStatus({ reminder, now }: { reminder: Reminder; now: number }) 
         <Button label="Open settings" variant="ghost" onPress={() => Linking.openSettings()} />
       )}
     </View>
+  );
+}
+
+type RepeatSwitchProps = {
+  on: boolean;
+  onChange: (on: boolean) => void;
+  /** The time in the When field, when it holds a valid one. */
+  firstAt: number | null;
+  now: number;
+};
+
+/** "Repeat every day", off by default. The whole row toggles it, for a big tap target. */
+function RepeatSwitch({ on, onChange, firstAt, now }: RepeatSwitchProps) {
+  const first = firstAt === null ? null : nextDailyOccurrence(firstAt, now);
+  const hint = !on
+    ? 'Rings once.'
+    : first === null
+      ? 'Rings every day at the time above.'
+      : `Rings every day at ${formatTime(first)}, starting ${formatDay(first, now)}.`;
+  return (
+    <Pressable
+      accessibilityRole="switch"
+      accessibilityLabel="Repeat every day"
+      accessibilityHint={hint}
+      accessibilityState={{ checked: on }}
+      onPress={() => onChange(!on)}
+      style={({ pressed }) => [styles.repeat, pressed && styles.pressed]}
+    >
+      <View style={styles.repeatText}>
+        <Text style={styles.repeatLabel}>Repeat every day</Text>
+        <Text style={styles.repeatHint}>{hint}</Text>
+      </View>
+      {/* Shows the state only: the row takes the tap, so it never toggles twice. */}
+      <View
+        style={styles.switchFrame}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      >
+        <Switch
+          value={on}
+          trackColor={{ false: COLORS.borderStrong, true: COLORS.primary }}
+          thumbColor={COLORS.surface}
+          ios_backgroundColor={COLORS.borderStrong}
+        />
+      </View>
+    </Pressable>
   );
 }
 
@@ -359,6 +429,33 @@ const styles = StyleSheet.create({
   },
   statusActions: {
     gap: SPACING.sm,
+  },
+  repeat: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+    minHeight: 64,
+    padding: SPACING.md,
+    borderRadius: RADII.lg,
+    backgroundColor: COLORS.surface,
+    ...SHADOWS.card,
+  },
+  repeatText: {
+    flex: 1,
+    gap: 2,
+  },
+  repeatLabel: {
+    fontFamily: FONTS.bodyBold,
+    fontSize: FONT_SIZES.body,
+    color: COLORS.text,
+  },
+  repeatHint: {
+    fontSize: FONT_SIZES.caption,
+    lineHeight: 18,
+    color: COLORS.textMuted,
+  },
+  switchFrame: {
+    pointerEvents: 'none',
   },
   alertNotice: {
     gap: SPACING.sm,

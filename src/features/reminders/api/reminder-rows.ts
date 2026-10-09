@@ -1,6 +1,7 @@
 import { getDatabase } from '@/lib/db';
 
 import type { Reminder, ReminderRepeat, ReminderStatus } from '../types';
+import { nextDailyOccurrence } from './repeat-rules';
 
 type ReminderRow = {
   id: number;
@@ -33,13 +34,14 @@ const SELECT_REMINDERS = `SELECT r.id, r.title, r.scheduled_at, r.repeat, r.stat
 export async function selectReminders(): Promise<Reminder[]> {
   const db = await getDatabase();
   const rows = await db.getAllAsync<ReminderRow>(`${SELECT_REMINDERS} ORDER BY r.id`);
-  return rows.map(toReminder);
+  const now = Date.now();
+  return rows.map((row) => toReminder(row, now));
 }
 
 export async function selectReminder(id: number): Promise<Reminder | null> {
   const db = await getDatabase();
   const row = await db.getFirstAsync<ReminderRow>(`${SELECT_REMINDERS} WHERE r.id = ?`, id);
-  return row && toReminder(row);
+  return row && toReminder(row, Date.now());
 }
 
 export async function insertReminder(input: {
@@ -121,12 +123,15 @@ export async function selectTaskTitle(id: number): Promise<string | null> {
   return row?.title ?? null;
 }
 
-function toReminder(row: ReminderRow): Reminder {
+// A daily reminder's saved time is the earliest it may ring. It reads as the next time it
+// rings, so every list, reply and alert shows when that is.
+function toReminder(row: ReminderRow, now: number): Reminder {
+  const repeat = row.repeat === 'daily' ? 'daily' : null;
   return {
     id: row.id,
     title: row.title,
-    scheduledAt: row.scheduled_at,
-    repeat: row.repeat === 'daily' ? 'daily' : null,
+    scheduledAt: repeat ? nextDailyOccurrence(row.scheduled_at, now) : row.scheduled_at,
+    repeat,
     status: STATUSES.includes(row.status) ? (row.status as ReminderStatus) : 'scheduled',
     notificationId: row.notification_id,
     taskId: row.task_id,

@@ -27,10 +27,15 @@ import {
   SPACING,
 } from '@/constants/theme';
 import { useNow } from '@/hooks/use-now';
-import { capitalize } from '@/utils/capitalize';
-import { formatRelative, formatWhen } from '@/utils/format-when';
+import { formatRelative } from '@/utils/format-when';
 
-import { groupReminders, isReminderPastDue, REMINDER_GROUP_TITLES } from '../api/group-reminders';
+import {
+  describeReminderTime,
+  groupReminders,
+  isReminderPastDue,
+  REMINDER_GROUP_TITLES,
+  reminderNextAt,
+} from '../api/group-reminders';
 import { setReminderStatus } from '../api/reminders';
 import { useNotificationPermission } from '../hooks/use-notification-permission';
 import { useReminders } from '../hooks/use-reminders';
@@ -58,7 +63,7 @@ export function ReminderList() {
     [data, now],
   );
   const hasUpcoming = (data ?? []).some(
-    (reminder) => reminder.status === 'scheduled' && reminder.scheduledAt > now,
+    (reminder) => reminder.status === 'scheduled' && reminderNextAt(reminder, now) > now,
   );
 
   const close = useCallback(async (reminder: Reminder, next: 'completed' | 'dismissed') => {
@@ -140,8 +145,11 @@ const ReminderRow = memo(function ReminderRow({
   const pastDue = isReminderPastDue(reminder, now);
   const upcoming = reminder.status === 'scheduled' && !pastDue;
   const noAlert = upcoming && reminder.notificationId === null;
-  const when = capitalize(formatWhen(reminder.scheduledAt, true, now));
-  const detail = upcoming ? `${when} · ${formatRelative(reminder.scheduledAt, now)}` : when;
+  // "Every day at 8:00 AM" for a daily reminder, "Tomorrow at 9:00 AM" for a one-off.
+  const when = describeReminderTime(reminder, now);
+  const detail = upcoming
+    ? `${when} · ${formatRelative(reminderNextAt(reminder, now), now)}`
+    : when;
   return (
     <View style={styles.row}>
       <Pressable

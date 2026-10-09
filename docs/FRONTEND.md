@@ -241,8 +241,7 @@ Later, after the MVP: `health/`, pushed from the menu.
 
 ```
 ┌─────────────────────────────┐
-│ Pinsan                   ☰  │  ☰ = round white button, opens the side menu
-│ 🔒 Offline · private        │  badge under the title
+│                          ☰  │  ☰ = round white button, opens the side menu
 │                             │
 │      ╭──────────────────╮   │
 │      │ Remind you at    │   │  Pinsan's reply bubble, over his head
@@ -257,7 +256,8 @@ Later, after the MVP: `health/`, pushed from the menu.
 ```
 
 - **The top-right corner belongs to ☰.** It floats over the island (48 pt, white at 92% like
-  the badge, ink icon). There is no dock and no tab bar: the menu leads everywhere else.
+  the mic hint, ink icon), and Pinsan's bubble stays below it. Nothing else sits at the top:
+  no title, no badge. There is no dock and no tab bar: the menu leads everywhere else.
 - **Talk:** tap the mic to start and tap it again to stop. The camera glides in to Pinsan's
   face (`focusPinsan()`), and your words appear on a paper note as you speak. The keyboard
   button opens a text box instead, for a noisy room.
@@ -265,7 +265,6 @@ Later, after the MVP: `health/`, pushed from the menu.
   proposes a task, a reminder, a note or a journal entry, the bubble shows it with Save and
   Cancel, and nothing is saved until you tap Save. Save sets `done` and plays a haptic. A
   call for help asks first, then opens the dialer.
-- **Offline badge**: always visible, under the title. It's the pitch, so make it look good.
 
 ### The side menu
 

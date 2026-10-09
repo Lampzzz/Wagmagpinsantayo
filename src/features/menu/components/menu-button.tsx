@@ -6,6 +6,9 @@ import { COLORS, PRESSED_SCALE, RADII, SHADOWS } from '@/constants/theme';
 
 import { SideMenu } from './side-menu';
 
+/** The button's width and height. Home keeps Pinsan's bubbles below it. */
+export const MENU_BUTTON_SIZE = 48;
+
 type MenuButtonProps = {
   /** Where it floats, such as Home's top-right corner. */
   style?: StyleProp<ViewStyle>;
@@ -34,10 +37,10 @@ export function MenuButton({ style }: MenuButtonProps) {
 }
 
 const styles = StyleSheet.create({
-  // Matches Home's "Offline · private" badge: white at 92% over the sky.
+  // White at 92% over the sky, like the hint under Home's mic.
   button: {
-    width: 48,
-    height: 48,
+    width: MENU_BUTTON_SIZE,
+    height: MENU_BUTTON_SIZE,
     borderRadius: RADII.pill,
     alignItems: 'center',
     justifyContent: 'center',

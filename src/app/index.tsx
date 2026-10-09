@@ -10,7 +10,7 @@ export default function HomeRoute() {
   return (
     <View style={styles.fill}>
       <HomeScreen />
-      {/* The top-right corner belongs to the menu; Home's title and badge stay on the left. */}
+      {/* The top-right corner belongs to the menu. */}
       <MenuButton style={[styles.menu, { top: insets.top + SPACING.sm }]} />
     </View>
   );

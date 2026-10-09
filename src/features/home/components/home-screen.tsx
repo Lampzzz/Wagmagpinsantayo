@@ -10,8 +10,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '@/components/ui/icon';
 import { IconButton } from '@/components/ui/icon-button';
 import { Text } from '@/components/ui/text';
-import { COLORS, FONT_SIZES, FONTS, RADII, SHADOWS, SKY, SPACING } from '@/constants/theme';
+import { COLORS, FONT_SIZES, FONTS, RADII, SKY, SPACING } from '@/constants/theme';
 import { Mascot } from '@/features/mascot';
+import { MENU_BUTTON_SIZE } from '@/features/menu';
 
 import { useTalkToPinsan, type TalkStage } from '../hooks/use-talk-to-pinsan';
 import type { BubbleArea } from '../place-bubble';
@@ -56,16 +57,16 @@ export function HomeScreen() {
   const talk = useTalkToPinsan();
   const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
   const [size, setSize] = useState({ width: 0, height: 0 });
-  const [titleBottom, setTitleBottom] = useState(0);
   const [bottomTop, setBottomTop] = useState(0);
 
   const area: BubbleArea = {
     width: size.width,
     height: size.height,
-    top: Math.max(titleBottom, insets.top) + SPACING.md,
+    // Below the menu button, which the route floats SPACING.sm under the status bar.
+    top: insets.top + SPACING.sm + MENU_BUTTON_SIZE + SPACING.md,
     bottom: (bottomTop || size.height) - SPACING.md,
   };
-  const measured = size.width > 0 && titleBottom > 0;
+  const measured = size.width > 0;
   const { stage } = talk;
   const recording = stage === 'starting' || stage === 'listening' || stage === 'transcribing';
   const showNote =
@@ -91,27 +92,6 @@ export function HomeScreen() {
           style={StyleSheet.absoluteFill}
         />
       )}
-
-      <View
-        pointerEvents="box-none"
-        onLayout={(event) => {
-          const { y, height } = event.nativeEvent.layout;
-          setTitleBottom(y + height);
-        }}
-        style={[styles.titleBlock, { top: insets.top + SPACING.sm }]}
-      >
-        <Text accessibilityRole="header" style={styles.title}>
-          Pinsan
-        </Text>
-        <View
-          accessible
-          accessibilityLabel="Offline and private: everything stays on this phone"
-          style={styles.badge}
-        >
-          <Icon ios="lock.fill" android="lock" color={COLORS.success} size={14} />
-          <Text style={styles.badgeText}>Offline · private</Text>
-        </View>
-      </View>
 
       {measured &&
         (stage === 'thinking' ? (
@@ -190,33 +170,6 @@ export function HomeScreen() {
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
-  titleBlock: {
-    position: 'absolute',
-    left: SPACING.md,
-    alignItems: 'flex-start',
-    gap: SPACING.xs + 2,
-  },
-  title: {
-    fontFamily: FONTS.display,
-    fontSize: FONT_SIZES.display,
-    lineHeight: 34,
-    color: COLORS.ink,
-  },
-  badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.xs + 2,
-    paddingHorizontal: SPACING.sm + SPACING.xs,
-    paddingVertical: SPACING.xs + 2,
-    borderRadius: RADII.pill,
-    backgroundColor: COLORS.surfaceTranslucent,
-    ...SHADOWS.soft,
-  },
-  badgeText: {
-    fontFamily: FONTS.bodyBold,
-    fontSize: FONT_SIZES.caption,
-    color: COLORS.ink,
-  },
   bottom: {
     position: 'absolute',
     left: SPACING.md,

@@ -215,10 +215,10 @@ src/app/
   alerts run from `<ReminderAlerts />` beside it. A notification tap that launches the app
   navigates at once, and Expo Router throws if that happens before a navigator is mounted.
 
-**Still open: tab bar or dock.** This direction has no tab bar. Home is the hub, with Quick
-Add and a floating dock (below); Notes and Tasks are stack screens pushed from the dock, and
-Extract Tasks is a form sheet. Decide together whether to keep the tabs or move the screens
-behind the dock.
+**Decided Oct 9: keep the tab bar for the demo.** The direction below has no tab bar: Home
+is the hub, with Quick Add and a floating dock; Notes and Tasks are stack screens pushed from
+the dock, and Extract Tasks is a form sheet. That waits until after the hackathon. For now
+Home gets the Quick Add pill and Pinsan's speech bubble, without the dock.
 
 Later, after the MVP: `emergency.tsx` and `health/`, both pushed from the menu button.
 

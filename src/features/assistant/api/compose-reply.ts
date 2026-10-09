@@ -142,7 +142,20 @@ function ranLine(step: Extract<Step, { kind: 'ran' }>, now: number): Line {
     case 'reminder-saved':
       return same(reminderSavedText(action, outcome.reminder, outcome.alert, now));
     case 'reminder-closed': {
-      const { title, status } = outcome.reminder;
+      const { title, status, repeat, scheduledAt } = outcome.reminder;
+      // Done or dismissed, a daily reminder only skips today, and it rings again next time.
+      if (repeat === 'daily' && status === 'scheduled') {
+        const skipped =
+          action.kind === 'close-reminder' && action.status === 'completed'
+            ? `Done for today: "${title}".`
+            : `Skipped for today: "${title}".`;
+        const again = `I'll remind you again ${formatWhen(scheduledAt, true, now)}.`;
+        return same(
+          outcome.alertCleared
+            ? `${skipped} ${again}`
+            : `${skipped} I couldn't update its alert, so it may still go off today.`,
+        );
+      }
       const done =
         status === 'completed'
           ? `Marked the reminder "${title}" as done.`
@@ -270,8 +283,16 @@ function reminderSavedText(action: Action, reminder: Reminder, alert: AlertOutco
   return sentences.join(' ');
 }
 
-// "tomorrow at 8:00 AM", or "every day at 8:00 AM" for a daily reminder.
-function reminderWhen(reminder: Reminder, now: number): string {
+/**
+ * "tomorrow at 8:00 AM", or "every day at 8:00 AM" for a daily reminder: the words of
+ * the reminders list's describeReminderTime, lowercase for use mid-sentence. Written
+ * out here because this module only imports types from other features, so its tests
+ * don't load their screens.
+ */
+export function reminderWhen(
+  reminder: Pick<Reminder, 'scheduledAt' | 'repeat'>,
+  now: number,
+): string {
   return reminder.repeat === 'daily'
     ? `every day at ${formatTime(reminder.scheduledAt)}`
     : formatWhen(reminder.scheduledAt, true, now);
@@ -373,9 +394,13 @@ function taskItem(task: Task, now: number, withNotes: boolean): ReplyItem {
 }
 
 function reminderItem(reminder: Reminder, now: number): ReplyItem {
-  const daily = reminder.repeat === 'daily';
+  // A daily reminder is never past due: it reads back at its next time.
   const parts = [capitalize(reminderWhen(reminder, now))];
-  if (!daily && reminder.status === 'scheduled' && reminder.scheduledAt <= now) {
+  if (
+    reminder.repeat !== 'daily' &&
+    reminder.status === 'scheduled' &&
+    reminder.scheduledAt <= now
+  ) {
     parts.push('Past due');
   }
   if (reminder.status === 'completed') parts.push('Done');

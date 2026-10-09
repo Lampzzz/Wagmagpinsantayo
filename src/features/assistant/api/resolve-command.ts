@@ -18,6 +18,7 @@ import type {
   Question,
   Snapshot,
 } from '../types';
+import { reminderWhen } from './compose-reply';
 import { isBlankQuery, matchTitle } from './match-title';
 
 export type Resolution =
@@ -271,7 +272,7 @@ function proposeDailyReminder(
     kind: 'ask',
     question: {
       kind: 'confirm',
-      prompt: `Remind you every day at ${formatTime(at)}: "${title}"? The first one is ${formatDay(at, now)}.`,
+      prompt: `Remind you ${reminderWhen({ scheduledAt: at, repeat: 'daily' }, now)}: "${title}"? The first one is ${formatDay(at, now)}.`,
       action: {
         kind: 'create-reminder',
         reminder: { title, scheduledAt: at, taskId, repeat: 'daily' },
@@ -640,12 +641,7 @@ function pick(
 }
 
 function describeItem(entity: Entity, item: Item, now: number): string {
-  if (entity === 'reminder') {
-    const { scheduledAt, repeat } = item as Reminder;
-    return repeat === 'daily'
-      ? `Every day at ${formatTime(scheduledAt)}`
-      : capitalize(formatWhen(scheduledAt, true, now));
-  }
+  if (entity === 'reminder') return capitalize(reminderWhen(item as Reminder, now));
   const task = item as Task;
   if (task.status === 'done') return 'Done';
   return task.dueAt === null ? 'No date' : `Due ${formatWhen(task.dueAt, task.dueHasTime, now)}`;

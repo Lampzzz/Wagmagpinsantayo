@@ -24,6 +24,7 @@ function endOf(year: number, month: number, day: number) {
 
 // Monday, Oct 5, 2026, 10:00 AM.
 const NOW = at(2026, 10, 5, 10);
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** An in-memory stand-in for the task, reminder and note services and the phone's dialer. */
 function createWorld(options: { model?: AssistantDeps['interpretWithModel']; now?: number } = {}) {
@@ -103,7 +104,13 @@ function createWorld(options: { model?: AssistantDeps['interpretWithModel']; now
       case 'close-reminder': {
         const reminder = reminders.find(({ id }) => id === action.reminder.id);
         if (!reminder) throw new Error('Gone');
-        reminder.status = action.status;
+        if (reminder.repeat === 'daily' && action.status !== 'cancelled') {
+          // Like the real service: a daily reminder skips today and stays scheduled.
+          const endOfToday = new Date(now).setHours(23, 59, 59, 999);
+          while (reminder.scheduledAt <= endOfToday) reminder.scheduledAt += DAY_MS;
+        } else {
+          reminder.status = action.status;
+        }
         return { kind: 'reminder-closed', reminder: { ...reminder }, alertCleared: true };
       }
       case 'delete-reminder':
@@ -1047,6 +1054,45 @@ describe('runTurn: every-day reminders', () => {
     expect(list.items).toEqual([
       expect.objectContaining({ title: 'Take my medicine', detail: 'Every day at 8:00 AM' }),
     ]);
+  });
+
+  it.each([
+    ['Mark my stretch reminder as done', 'Done for today: "Stretch".'],
+    ['Dismiss my stretch reminder', 'Skipped for today: "Stretch".'],
+  ])('takes %p as for today only', async (text, skipped) => {
+    const world = createWorld();
+    await world.send('Remind me daily at 9pm to stretch');
+    await world.send('Save');
+    expect(world.reminders[0].scheduledAt).toBe(at(2026, 10, 5, 21));
+
+    const reply = await world.send(text);
+    expect(reply.text).toBe(`${skipped} I'll remind you again tomorrow at 9:00 PM.`);
+    expect(reply.items).toEqual([expect.objectContaining({ detail: 'Every day at 9:00 PM' })]);
+    expect(world.reminders[0]).toMatchObject({
+      status: 'scheduled',
+      scheduledAt: at(2026, 10, 6, 21),
+    });
+  });
+
+  it('stops a daily reminder when it is cancelled', async () => {
+    const world = createWorld();
+    await world.send('Remind me daily at 9pm to stretch');
+    await world.send('Save');
+    expect((await world.send('Cancel my stretch reminder')).text).toBe(
+      'Cancelled the reminder "Stretch".',
+    );
+    expect(world.reminders[0].status).toBe('cancelled');
+  });
+
+  it('says a finished task keeps its daily reminder', async () => {
+    const world = createWorld();
+    await world.send('Create a task to take my vitamins');
+    await world.send('Remind me every day at 8 AM about it');
+    await world.send('Save');
+    expect(world.reminders[0]).toMatchObject({ taskId: world.tasks[0].id, repeat: 'daily' });
+    expect((await world.send('Mark my vitamins task as done')).text).toBe(
+      'Marked "Take my vitamins" as done. Its reminder for every day at 8:00 AM is still on.',
+    );
   });
 
   it('never asks the model about a daily reminder', async () => {

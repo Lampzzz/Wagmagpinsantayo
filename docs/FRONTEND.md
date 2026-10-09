@@ -259,8 +259,9 @@ Later, after the MVP: `health/`, pushed from the menu.
   the mic hint, ink icon), and Pinsan's bubble stays below it. Nothing else sits at the top:
   no title, no badge. There is no dock and no tab bar: the menu leads everywhere else.
 - **Talk:** tap the mic to start and tap it again to stop. The camera glides in to Pinsan's
-  face (`focusPinsan()`), and your words appear on a paper note as you speak. The keyboard
-  button opens a text box instead, for a noisy room.
+  face (`focusPinsan()`), and your words appear on a paper note as you speak. Once words
+  appear, "Start over" on the note throws them away and he listens again (`discard()` in
+  `useDictation`). The keyboard button opens a text box instead, for a noisy room.
 - **Pinsan's reply** is a speech bubble over his head, not a separate screen. When he
   proposes a task, a reminder, a note or a journal entry, the bubble shows it with Save and
   Cancel, and nothing is saved until you tap Save. Save sets `done` and plays a haptic. A

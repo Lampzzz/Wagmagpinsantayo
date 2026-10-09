@@ -191,42 +191,50 @@ The phone runs an LLM at the same time, so the 3D must stay cheap.
 
 ## Screens and routes
 
-**As merged (Oct 9).** The developer's `development` branch built the Notes, Tasks,
-Reminders and Assistant screens under a tab bar, so the island became the first tab:
+**Decided Oct 10: no tab bar.** Home is Pinsan's island, full screen. A round ☰ button in its
+top-right corner opens the side menu, and every other screen is a stack screen pushed from
+there, so Back always returns to the island:
 
 ```
 src/app/
-  _layout.tsx            Stack: fonts, gesture and keyboard providers, reminder alerts
-  (tabs)/_layout.tsx     Tab bar: Home, Notes, Assistant, Tasks, Reminders
-  (tabs)/index.tsx       Home: the island and Pinsan
-  (tabs)/notes.tsx       Notes list
-  (tabs)/assistant.tsx   Chat with Pinsan (on-device AI)
-  (tabs)/tasks.tsx       Task list
-  (tabs)/reminders.tsx   Reminders
-  notes/new, [id]        Note editor; notes/voice records a voice note (modal)
-  tasks/new, [id]        Task editor
-  reminders/new, [id]    Reminder editor
-  ai-setup.tsx           Downloads the on-device models (modal)
-  studio.tsx             Development only: Pinsan on grey for checking the model (see above)
+  _layout.tsx              Stack: fonts, gesture and keyboard providers, reminder alerts
+  index.tsx                Home: the island and Pinsan, no header, with the ☰ button
+  conversations/index.tsx  Conversations: chat with Pinsan (on-device AI)
+  journal/index.tsx        Journal: the notes list for now, JournalList once it lands
+  tasks/index.tsx          Task list
+  reminders/index.tsx      Reminders
+  notes/new, [id]          Note editor; notes/voice records a voice note (modal)
+  tasks/new, [id]          Task editor
+  reminders/new, [id]      Reminder editor
+  ai-setup.tsx             Downloads the on-device models (modal)
+  extract-tasks.tsx        Reviews the tasks found in a note (form sheet)
+  studio.tsx               Development only: Pinsan on grey for checking the model (see above)
 ```
 
-- The island stops rendering while another tab is showing (`useSceneActive`).
+- **The side menu** (`src/features/menu`): ☰ opens a sheet that slides in from the right over
+  a dim backdrop. It is React Native's `Modal` plus Reanimated, animating transform and opacity
+  only. Tap the backdrop, tap ✕ or press Android back to close it. The rows are Conversations,
+  Journal, Tasks, Reminders, Emergency and AI setup: an icon and a Fredoka label, at least
+  64 pt tall. A row closes the sheet first, then pushes its screen.
+- **Emergency** is the red row: `danger` text on `dangerSurface` (4.9:1), its icon on
+  `dangerFill`. It asks "Call emergency services?" with Cancel and Call 911. Call 911 opens
+  the phone's dialer with 911 filled in through a `tel:` link. It never dials by itself, and it
+  needs no phone permission.
+- The island stops rendering while another screen is on top (`useSceneActive`). Under the open
+  menu it keeps running, dimmed.
 - The root layout waits for the fonts before it renders the navigator, so the reminder
   alerts run from `<ReminderAlerts />` beside it. A notification tap that launches the app
   navigates at once, and Expo Router throws if that happens before a navigator is mounted.
+  The tap pushes `reminders/[id]` over Home.
 
-**Decided Oct 9: keep the tab bar for the demo.** The direction below has no tab bar: Home
-is the hub, with Quick Add and a floating dock; Notes and Tasks are stack screens pushed from
-the dock, and Extract Tasks is a form sheet. That waits until after the hackathon. For now
-Home gets the Quick Add pill and Pinsan's speech bubble, without the dock.
-
-Later, after the MVP: `emergency.tsx` and `health/`, both pushed from the menu button.
+Later, after the MVP: `health/`, pushed from the menu.
 
 ### Home
 
 ```
 ┌─────────────────────────────┐
-│ ☰        ( Today ▾ )     🔒 │  floating round buttons; 🔒 = "Offline · private"
+│ Pinsan    ( Today ▾ )    ☰  │  ☰ = round white button, opens the side menu
+│ 🔒 Offline · private        │  badge under the title
 │  ┌───────────────────────┐  │
 │  │ Next: Pay bill · 5 PM │  │  Today card (slides down from the pill)
 │  └───────────────────────┘  │
@@ -239,15 +247,33 @@ Later, after the MVP: `emergency.tsx` and `health/`, both pushed from the menu b
 │ ┌─────────────────────────┐ │
 │ │ Tell Pinsan anything… ➤ │ │  Quick Add pill (typing sets `listening`)
 │ └─────────────────────────┘ │
-│     [ Notes ]   [ Tasks ]   │  floating dock
 └─────────────────────────────┘
 ```
 
+- **The top-right corner belongs to ☰.** It floats over the island (48 pt, white at 92% like
+  the badge, ink icon). There is no dock and no tab bar: the menu leads everywhere else.
 - **Quick Add confirm** appears as Pinsan's speech bubble, not a separate screen. It shows
   title, date and time, and reminder type, with Save and Edit. Save sets `done` and plays
   a haptic.
 - **Today card**: the next reminder and today's task count. Tap to open Tasks.
-- **Offline badge**: always visible. It's the pitch, so make it look good.
+- **Offline badge**: always visible, under the title. It's the pitch, so make it look good.
+
+### The side menu
+
+```
+┌─────────────────────────────┐
+│░░░░░╭───────────────────────┤
+│░░░░░│ Menu               ✕  │  ✕ lands where ☰ was
+│░░░░░│ ( ) Conversations     │
+│░░░░░│ ( ) Journal           │
+│░░░░░│ ( ) Tasks             │  white rows: icon + Fredoka label
+│░░░░░│ ( ) Reminders         │
+│░░░░░│ (!) Emergency     911 │  red row: asks, then opens the dialer
+│░░░░░│ ( ) AI setup          │
+│░░░░░╰───────────────────────┤
+└─────────────────────────────┘
+  ░ = the island, dimmed: tap it to close
+```
 
 ### Notes, Tasks, Extract Tasks
 

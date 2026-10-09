@@ -4,7 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '@/constants/theme';
 import { NotesList } from '@/features/notes';
 
-export default function NotesScreen() {
+// TODO(W12): render `JournalList` from `@/features/notes` once that branch merges.
+export default function JournalRoute() {
   return (
     <SafeAreaView edges={['bottom']} style={styles.container}>
       <NotesList />

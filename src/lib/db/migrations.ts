@@ -44,4 +44,15 @@ export const MIGRATIONS: readonly string[] = [
 
   // 3: every-day reminders. `repeat` is 'daily', or NULL for a one-off reminder.
   `ALTER TABLE reminders ADD COLUMN repeat TEXT;`,
+
+  // 4: conversation history, one row per line, on Home or the Conversations screen.
+  // `role` 'pinsan' is a reply. `spoken` is 1 when the user said the line out loud.
+  `CREATE TABLE conversation_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    role TEXT NOT NULL CHECK (role IN ('user', 'pinsan')),
+    text TEXT NOT NULL,
+    spoken INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL
+  );
+  CREATE INDEX conversation_messages_by_time ON conversation_messages (created_at);`,
 ];

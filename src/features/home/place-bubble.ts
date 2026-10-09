@@ -4,7 +4,7 @@ import type { PinsanAnchor } from '@/features/mascot';
 export type BubbleArea = {
   width: number;
   height: number;
-  /** The bubble's top edge stays at or below this: clear of the title and badge. */
+  /** The bubble's top edge stays at or below this: clear of the menu button. */
   top: number;
   /** Its bottom edge stays at or above this: clear of the mic, or of the keyboard. */
   bottom: number;

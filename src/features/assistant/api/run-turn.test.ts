@@ -1,3 +1,4 @@
+import type { Note } from '@/features/notes';
 import type { AlertOutcome, Reminder } from '@/features/reminders';
 import type { Task } from '@/features/tasks';
 
@@ -24,11 +25,12 @@ function endOf(year: number, month: number, day: number) {
 // Monday, Oct 5, 2026, 10:00 AM.
 const NOW = at(2026, 10, 5, 10);
 
-/** An in-memory stand-in for the task and reminder services and the phone's dialer. */
+/** An in-memory stand-in for the task, reminder and note services and the phone's dialer. */
 function createWorld(options: { model?: AssistantDeps['interpretWithModel']; now?: number } = {}) {
   const now = options.now ?? NOW;
   const tasks: Task[] = [];
   const reminders: Reminder[] = [];
+  const notes: Note[] = [];
   let nextId = 1;
   let alert: AlertOutcome = 'scheduled';
   let failNext: Action['kind'] | 'any' | null = null;
@@ -109,6 +111,11 @@ function createWorld(options: { model?: AssistantDeps['interpretWithModel']; now
           1,
         );
         return { kind: 'reminder-deleted', alertCleared: true };
+      case 'create-note': {
+        const note: Note = { ...action.note, id: nextId++, createdAt: now, updatedAt: now };
+        notes.push(note);
+        return { kind: 'note-saved', note: { ...note } };
+      }
     }
   };
 
@@ -138,6 +145,7 @@ function createWorld(options: { model?: AssistantDeps['interpretWithModel']; now
   return {
     tasks,
     reminders,
+    notes,
     send,
     get state() {
       return state;
@@ -803,5 +811,110 @@ describe('runTurn: emergency call', () => {
       'When should I remind you?',
     );
     expect(world.callEmergency).not.toHaveBeenCalled();
+  });
+});
+
+describe('runTurn: journal', () => {
+  it('shows the entry back, then saves it to the journal on Save', async () => {
+    const world = createWorld();
+    const entry = 'Today I finished the slides and felt proud.';
+
+    const question = await world.send(
+      'Write in my journal: today I finished the slides and felt proud.',
+    );
+    expect(question.text).toBe(`Save this to today's journal?\n"${entry}"`);
+    expect(question.question).toMatchObject({
+      kind: 'confirm',
+      action: { kind: 'create-note', note: { title: '', body: entry } },
+      yesLabel: 'Save',
+      noLabel: 'Cancel',
+    });
+    expect(world.notes).toHaveLength(0);
+
+    const reply = await world.send({ kind: 'confirm', yes: true });
+    expect(reply.text).toBe('Saved to your journal.');
+    expect(reply.isError).toBe(false);
+    expect(world.notes).toEqual([
+      expect.objectContaining({ title: '', body: entry, createdAt: NOW }),
+    ]);
+    expect(world.state.pending).toBeNull();
+  });
+
+  it.each([
+    ['Journal: had lunch with Ana', 'Had lunch with Ana'],
+    ['Dear journal, the rain finally stopped.', 'The rain finally stopped.'],
+    ['Note: the gate code is 4321', 'The gate code is 4321'],
+    ['Take a note: I parked on level 3', 'I parked on level 3'],
+    ['Make a note that the plumber comes back next week', 'The plumber comes back next week'],
+    ['Note: call 911 if the alarm goes off', 'Call 911 if the alarm goes off'],
+  ])('saves %p as %p', async (text, body) => {
+    const world = createWorld();
+    await world.send(text);
+    await world.send('Save');
+    expect(world.notes.map((note) => note.body)).toEqual([body]);
+    expect(world.callEmergency).not.toHaveBeenCalled();
+  });
+
+  it('keeps every word, even ones that sound like requests', async () => {
+    const world = createWorld();
+    const question = await world.send(
+      'Dear journal, I want to run every day, and tomorrow I will remind myself to stretch',
+    );
+    // Not refused as a repeating reminder: the whole entry is shown back.
+    expect(question.question?.kind).toBe('confirm');
+    await world.send('yes');
+    expect(world.notes[0].body).toBe(
+      'I want to run every day, and tomorrow I will remind myself to stretch',
+    );
+    expect(world.tasks).toHaveLength(0);
+    expect(world.reminders).toHaveLength(0);
+  });
+
+  it('asks what to write when the entry is empty', async () => {
+    const world = createWorld();
+    const question = await world.send('Take a note');
+    expect(question.text).toBe('What should I write in your journal?');
+    expect(question.question).toMatchObject({ kind: 'fill', field: 'text', suggestions: [] });
+
+    const confirm = await world.send('buy groceries after work');
+    expect(confirm.text).toBe(`Save this to today's journal?\n"Buy groceries after work"`);
+    expect(world.tasks).toHaveLength(0);
+    await world.send('Save');
+    expect(world.notes.map((note) => note.body)).toEqual(['Buy groceries after work']);
+  });
+
+  it('saves nothing when the user cancels', async () => {
+    const world = createWorld();
+    await world.send('Journal: a quiet day');
+    const reply = await world.send({ kind: 'confirm', yes: false });
+    expect(reply.text).toBe("Okay, I didn't save it to your journal.");
+    expect(world.notes).toHaveLength(0);
+  });
+
+  it('says so when the entry cannot be saved', async () => {
+    const world = createWorld();
+    await world.send('Journal: a quiet day');
+    world.failNextAction('create-note');
+    const reply = await world.send('yes');
+    expect(reply.text).toBe("Something went wrong, so I couldn't save that to your journal.");
+    expect(reply.isError).toBe(true);
+    expect(world.notes).toHaveLength(0);
+  });
+
+  it('never asks the model about a journal entry', async () => {
+    const model = jest.fn(async (): Promise<Command[]> => []);
+    const world = createWorld({ model });
+    await world.send('Note to self: call the bank about the card');
+    expect(model).not.toHaveBeenCalled();
+    expect(world.state.pending?.question.kind).toBe('confirm');
+  });
+
+  it('still adds notes to tasks', async () => {
+    const world = createWorld();
+    await world.send('Create a task to finish the project report');
+    expect((await world.send('Add a note to my project task: bring the slides')).text).toBe(
+      'Updated the notes on "Finish the project report".',
+    );
+    expect(world.notes).toHaveLength(0);
   });
 });

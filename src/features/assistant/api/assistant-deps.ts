@@ -1,4 +1,5 @@
 import type { AiAvailability } from '@/features/ai-setup';
+import { createNote } from '@/features/notes';
 import {
   createReminder,
   deleteReminder,
@@ -75,5 +76,7 @@ async function execute(action: DataAction): Promise<Outcome> {
       const { alertCleared } = await deleteReminder(action.reminder.id);
       return { kind: 'reminder-deleted', alertCleared };
     }
+    case 'create-note':
+      return { kind: 'note-saved', note: await createNote(action.note) };
   }
 }

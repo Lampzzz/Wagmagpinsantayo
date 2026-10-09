@@ -157,6 +157,8 @@ function ranLine(step: Extract<Step, { kind: 'ran' }>, now: number): Line {
       );
     case 'dialer-opened':
       return withNumber(`Opening your phone's dialer with ${outcome.number}.`, outcome.number);
+    case 'note-saved':
+      return same('Saved to your journal.');
   }
 }
 
@@ -399,6 +401,8 @@ function skippedText(action: Action): string {
       return `Okay, I kept "${titleOf(action)}".`;
     case 'call-emergency':
       return "Okay, I won't call.";
+    case 'create-note':
+      return "Okay, I didn't save it to your journal.";
     default:
       return `Okay, I left "${titleOf(action)}" as it was.`;
   }
@@ -429,6 +433,8 @@ function actionWords(action: Action): string {
       return `delete the reminder ${title}`;
     case 'call-emergency':
       return 'open the dialer';
+    case 'create-note':
+      return 'save that to your journal';
   }
 }
 
@@ -459,6 +465,8 @@ function commandWords(command: Command): string {
       return `change "${command.target}"`;
     case 'call-emergency':
       return 'call emergency services';
+    case 'add-note':
+      return 'save a journal entry';
   }
 }
 
@@ -471,6 +479,8 @@ function titleOf(action: Action): string {
       return action.task.title;
     case 'call-emergency':
       return 'emergency services';
+    case 'create-note':
+      return 'journal entry';
     default:
       return action.reminder.title;
   }

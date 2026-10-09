@@ -80,9 +80,36 @@ export function resolveCommand(
       return listReminders(command, snapshot.reminders, context.now);
     case 'call-emergency':
       return confirmEmergencyCall();
+    case 'add-note':
+      return resolveAddNote(command);
     default:
       return resolveTargeted(command, snapshot, context);
   }
+}
+
+// The entry keeps the user's words and is shown back before it's saved. It has no
+// title, so the journal and the notes list head it with its first line.
+function resolveAddNote(command: Extract<Command, { kind: 'add-note' }>): Resolution {
+  const entry = cleanEntry(command.text);
+  if (!entry) return askFor(command, 'text', 'What should I write in your journal?', []);
+  return {
+    kind: 'ask',
+    question: {
+      kind: 'confirm',
+      prompt: `Save this to today's journal?\n"${entry}"`,
+      action: { kind: 'create-note', note: { title: '', body: entry } },
+      yesLabel: 'Save',
+      noLabel: 'Cancel',
+    },
+  };
+}
+
+/** Tidies only the ends of an entry: "“today was good.”" → "Today was good." */
+function cleanEntry(raw: string): string {
+  let entry = raw.trim();
+  if (/^["“][\s\S]*["”]$/.test(entry)) entry = entry.slice(1, -1).trim();
+  // Punctuation alone ("…") isn't an entry.
+  return entry.replace(/[\s.,;:!?'"“”‘’()…—–-]+/g, '') ? capitalize(entry) : '';
 }
 
 // Never dials by itself: the user says yes here, then taps Call in the dialer.
@@ -617,7 +644,7 @@ function readWhen(
 
 function askFor(
   command: Command,
-  field: 'title' | 'when',
+  field: 'title' | 'when' | 'text',
   prompt: string,
   suggestions: string[],
 ): Resolution {

@@ -26,6 +26,7 @@ import {
 import { matchTitle } from './match-title';
 import { parseCommandRules } from './parse-command-rules';
 import { parseEmergency } from './parse-emergency';
+import { parseJournalEntry } from './parse-journal';
 import { parseQuickAdd } from './parse-quick-add';
 import { resolveCommand, type ResolveContext } from './resolve-command';
 
@@ -51,8 +52,10 @@ const NO_DATE_WORDS = /^(?:no date|no due date|no deadline|none|skip|without a d
 // "Yes, call", "Please hurry", "Help!": each a yes to "Call emergency services (911)?".
 const CALL_WORDS =
   /^(?:(?:yes|yeah|yep|yup|ok|okay|sure|please|help|hurry|hurry up|quick|quickly|now|call|call it|call them|dial)(?: |$))+$/;
-// The emergency call never looks at saved items, so a database problem can't hold it up.
+// The emergency call and journal entries never look at saved tasks or reminders, so a
+// problem loading them can't hold these up.
 const NO_ITEMS: Snapshot = { tasks: [], reminders: [] };
+const NEEDS_NO_ITEMS = new Set(['call-emergency', 'add-note', 'create-note']);
 // Words that ask for the task to be saved, not just suggested.
 const ASKS_TO_ADD = /\b(?:add|create|put|save|tasks?|to-?dos?|list)\b/i;
 const ORDINALS = new Map([
@@ -129,6 +132,17 @@ async function startRequest(
       focus,
       deps,
       now,
+    );
+  }
+  // A journal entry is the user's own words: nothing in it is read as a request.
+  const entry = parseJournalEntry(text);
+  if (entry) {
+    return runWork(
+      { work: [{ kind: 'command', command: entry }], skipped: [] },
+      focus,
+      deps,
+      now,
+      preface,
     );
   }
   if (isRecurring(text)) return nothingPending(composeRecurring(preface));
@@ -249,8 +263,7 @@ async function perform(action: Action, deps: AssistantDeps): Promise<Outcome> {
 }
 
 function readsSavedItems(item: Work): boolean {
-  const kind = item.kind === 'command' ? item.command.kind : item.action.kind;
-  return kind !== 'call-emergency';
+  return !NEEDS_NO_ITEMS.has(item.kind === 'command' ? item.command.kind : item.action.kind);
 }
 
 function readAnswer(input: TurnInput, question: Question): Answer {
@@ -315,7 +328,9 @@ function readAnswer(input: TurnInput, question: Question): Answer {
       break;
   }
 
-  if (parseEmergency(text) || parseCommandRules(text)) return { kind: 'new-request' };
+  if (parseEmergency(text) || parseJournalEntry(text) || parseCommandRules(text)) {
+    return { kind: 'new-request' };
+  }
 
   // Looser answers, tried only once the text isn't a request of its own.
   if (question.kind === 'pick') {
@@ -324,7 +339,7 @@ function readAnswer(input: TurnInput, question: Question): Answer {
     const match = exact.length === 1 ? exact[0] : strong.length === 1 ? strong[0] : null;
     if (match) return { kind: 'pick', option: match.option };
   }
-  if (question.kind === 'fill' && question.field === 'title' && text) {
+  if (question.kind === 'fill' && question.field !== 'when' && text) {
     return { kind: 'fill', text };
   }
   return { kind: 'new-request' };

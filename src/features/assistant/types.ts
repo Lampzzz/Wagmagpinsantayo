@@ -1,3 +1,4 @@
+import type { Note, NoteContent } from '@/features/notes';
 import type { AlertOutcome, NewReminder, Reminder, ReminderChanges } from '@/features/reminders';
 import type { NewTask, Task, TaskChanges, TaskPriority } from '@/features/tasks';
 
@@ -50,7 +51,9 @@ export type Command =
     } & Target)
   | ({ kind: 'edit-reminder'; title?: string; when?: string } & Target)
   /** "Call 911", "I need help". Only code reads these phrases, never the model. */
-  | { kind: 'call-emergency' };
+  | { kind: 'call-emergency' }
+  /** A journal entry in the user's own words: "Dear journal, …". Empty asks what to write. */
+  | { kind: 'add-note'; text: string };
 
 export type ClosedReminderStatus = 'completed' | 'dismissed' | 'cancelled';
 
@@ -69,7 +72,9 @@ export type Action =
    * Opens the phone's dialer with `number` filled in; the user still taps Call. It runs
    * only after the user says yes, through `AssistantDeps.callEmergency`.
    */
-  | { kind: 'call-emergency'; number: string };
+  | { kind: 'call-emergency'; number: string }
+  /** A journal entry: a note dated today, with the user's words as its body. */
+  | { kind: 'create-note'; note: NoteContent };
 
 /** The actions `AssistantDeps.execute` runs: everything but the emergency call. */
 export type DataAction = Exclude<Action, { kind: 'call-emergency' }>;
@@ -82,7 +87,8 @@ export type Outcome =
   /** `alertCleared` is false when the pending alert couldn't be cancelled. */
   | { kind: 'reminder-closed'; reminder: Reminder; alertCleared: boolean }
   | { kind: 'reminder-deleted'; alertCleared: boolean }
-  | { kind: 'dialer-opened'; number: string };
+  | { kind: 'dialer-opened'; number: string }
+  | { kind: 'note-saved'; note: Note };
 
 /** Everything the assistant matches against, loaded fresh for each request. */
 export type Snapshot = { tasks: Task[]; reminders: Reminder[] };
@@ -100,7 +106,8 @@ export type Question =
       kind: 'fill';
       prompt: string;
       command: Command;
-      field: 'title' | 'when';
+      /** `text` is a journal entry's words. */
+      field: 'title' | 'when' | 'text';
       /** Ready-made answers, such as "In 10 minutes". */
       suggestions: string[];
     };

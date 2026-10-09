@@ -5,6 +5,7 @@ export {
   setReminderStatus,
   updateReminder,
 } from './api/reminders';
+export { ReminderAlerts } from './components/reminder-alerts';
 export { ReminderEditor } from './components/reminder-editor';
 export { ReminderList } from './components/reminder-list';
 export { useReminderAlerts } from './hooks/use-reminder-alerts';

@@ -1,25 +1,52 @@
+import { Fredoka_600SemiBold } from '@expo-google-fonts/fredoka';
+import { Nunito_400Regular, Nunito_700Bold } from '@expo-google-fonts/nunito';
+import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { LogBox, StyleSheet } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 
-import { useReminderAlerts } from '@/features/reminders';
+import { ReminderAlerts } from '@/features/reminders';
+
+// React Three Fiber 9.8 still uses THREE.Clock internally. Nothing to fix on our side, and the
+// warning toast covers the bottom of the screen in development.
+LogBox.ignoreLogs(['THREE.Clock: This module has been deprecated']);
 
 export default function RootLayout() {
-  useReminderAlerts();
+  const [fontsLoaded] = useFonts({ Fredoka_600SemiBold, Nunito_400Regular, Nunito_700Bold });
+
+  // Fonts are bundled, so this resolves almost immediately, even offline.
+  if (!fontsLoaded) return null;
+
   return (
-    <KeyboardProvider>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="notes/new" options={{ title: 'New note' }} />
-        <Stack.Screen name="notes/[id]" options={{ title: 'Note' }} />
-        <Stack.Screen name="notes/voice" options={{ title: 'Voice note', presentation: 'modal' }} />
-        <Stack.Screen name="tasks/new" options={{ title: 'New task' }} />
-        <Stack.Screen name="tasks/[id]" options={{ title: 'Task' }} />
-        <Stack.Screen name="reminders/new" options={{ title: 'New reminder' }} />
-        <Stack.Screen name="reminders/[id]" options={{ title: 'Reminder' }} />
-        <Stack.Screen name="ai-setup" options={{ title: 'On-device AI', presentation: 'modal' }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </KeyboardProvider>
+    <GestureHandlerRootView style={styles.root}>
+      <KeyboardProvider>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="notes/new" options={{ title: 'New note' }} />
+          <Stack.Screen name="notes/[id]" options={{ title: 'Note' }} />
+          <Stack.Screen
+            name="notes/voice"
+            options={{ title: 'Voice note', presentation: 'modal' }}
+          />
+          <Stack.Screen name="tasks/new" options={{ title: 'New task' }} />
+          <Stack.Screen name="tasks/[id]" options={{ title: 'Task' }} />
+          <Stack.Screen name="reminders/new" options={{ title: 'New reminder' }} />
+          <Stack.Screen name="reminders/[id]" options={{ title: 'Reminder' }} />
+          <Stack.Screen
+            name="ai-setup"
+            options={{ title: 'On-device AI', presentation: 'modal' }}
+          />
+          <Stack.Screen name="studio" options={{ headerShown: false }} />
+        </Stack>
+        <ReminderAlerts />
+        <StatusBar style="auto" />
+      </KeyboardProvider>
+    </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+});

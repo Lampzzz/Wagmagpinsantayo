@@ -9,8 +9,8 @@ import { reminderIdFromNotification, syncReminderAlerts } from '../api/reminders
 /**
  * Keeps reminder alerts working: shows them while the app is open, re-syncs them
  * at launch and whenever the app comes back, and opens the reminder a tapped
- * notification belongs to, even when the tap launched the app. Call once, from
- * the root layout.
+ * notification belongs to, even when the tap launched the app. Call once, through
+ * `ReminderAlerts` in the root layout.
  */
 export function useReminderAlerts() {
   useEffect(() => {

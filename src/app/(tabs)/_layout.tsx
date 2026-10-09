@@ -17,6 +17,14 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
+          title: 'Home',
+          headerShown: false,
+          tabBarIcon: ({ color }) => <Icon ios="house" android="home" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="notes"
+        options={{
           title: 'Notes',
           tabBarIcon: ({ color }) => <Icon ios="note.text" android="description" color={color} />,
           headerRight: () => (

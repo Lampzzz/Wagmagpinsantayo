@@ -47,6 +47,7 @@
         }
       ],
       "expo-sqlite",
+      "expo-asset",
       "expo-font"
     ],
     "experiments": {

@@ -1,10 +1,12 @@
 import { notifyTableChanged, subscribeToTable } from '@/lib/db/table-changes';
 import {
   cancelNotification,
+  dismissNotification,
   ensureNotificationPermission,
   getNotificationPermission,
   getScheduledNotifications,
   scheduleNotification,
+  type NotificationData,
 } from '@/lib/notifications';
 import { formatTime } from '@/utils/format-when';
 
@@ -37,9 +39,12 @@ const MAX_TITLE_LENGTH = 200;
 // iOS keeps only the soonest 64 pending notifications. Leave some room.
 const MAX_PENDING_ALERTS = 60;
 const ALERT_ID = /^reminder-(\d+)$/;
+const SNOOZE_ID = /^reminder-(\d+)-snooze$/;
+/** How long Snooze puts off an alarm. */
+export const SNOOZE_MINUTES = 10;
 
 /** What an alert needs to know about its reminder. */
-type AlertTarget = Pick<Reminder, 'id' | 'title' | 'repeat'>;
+type AlertTarget = Pick<Reminder, 'id' | 'title' | 'repeat' | 'alarm'>;
 
 /** Calls `listener` after any reminder changes. Returns an unsubscribe function. */
 export function subscribeToReminders(listener: () => void): () => void {
@@ -68,7 +73,7 @@ export function getTaskTitle(id: number): Promise<string | null> {
  * the first time. The reminder is kept even when the alert can't be scheduled;
  * `alert` says what happened, so nobody is told it will ring when it won't.
  * With `repeat: 'daily'` it rings every day at the time of day of `scheduledAt`,
- * from `scheduledAt` on.
+ * from `scheduledAt` on. With `alarm: true` it rings like an alarm.
  */
 export async function createReminder(input: NewReminder): Promise<SavedReminder> {
   const title = checkTitle(input.title);
@@ -78,18 +83,19 @@ export async function createReminder(input: NewReminder): Promise<SavedReminder>
       ? input.taskId
       : null;
   const repeat = input.repeat === 'daily' ? 'daily' : null;
+  const alarm = input.alarm === true;
   const { scheduledAt } = input;
-  const id = await insertReminder({ title, scheduledAt, repeat, taskId });
+  const id = await insertReminder({ title, scheduledAt, repeat, alarm, taskId });
   notifyTableChanged('reminders');
   const plan = planAlert({ status: 'scheduled', scheduledAt, repeat }, Date.now());
-  const alert = await armAlert({ id, title, repeat }, plan, { ask: true });
+  const alert = await armAlert({ id, title, repeat, alarm }, plan, { ask: true });
   return { reminder: await requireReminder(id), alert };
 }
 
 /**
- * Saves a new title, time or repeat, and reschedules the alert. A new future time,
- * or turning on the daily repeat, brings back a reminder that was done, dismissed
- * or cancelled.
+ * Saves a new title, time, repeat or alarm setting, and reschedules the alert. A new
+ * future time, or turning on the daily repeat, brings back a reminder that was done,
+ * dismissed or cancelled. An alarm that's ringing or snoozed stops.
  */
 export async function updateReminder(id: number, changes: ReminderChanges): Promise<SavedReminder> {
   const current = await requireReminder(id);
@@ -98,6 +104,7 @@ export async function updateReminder(id: number, changes: ReminderChanges): Prom
   checkTime(scheduledAt);
   const repeat =
     changes.repeat === undefined ? current.repeat : changes.repeat === 'daily' ? 'daily' : null;
+  const alarm = changes.alarm ?? current.alarm;
   const now = Date.now();
   const nextAt = repeat === 'daily' ? nextDailyOccurrence(scheduledAt, now) : scheduledAt;
   const startsAgain =
@@ -107,21 +114,22 @@ export async function updateReminder(id: number, changes: ReminderChanges): Prom
   await updateReminderRow(
     id,
     reactivate
-      ? { title, scheduledAt, repeat, status: 'scheduled' }
-      : { title, scheduledAt, repeat },
+      ? { title, scheduledAt, repeat, alarm, status: 'scheduled' }
+      : { title, scheduledAt, repeat, alarm },
   );
   notifyTableChanged('reminders');
 
+  await silenceAlarm(id);
   const status: ReminderStatus = reactivate ? 'scheduled' : current.status;
   const plan = planAlert({ status, scheduledAt, repeat }, now);
-  const alert = await armAlert({ id, title, repeat }, plan, { ask: true });
+  const alert = await armAlert({ id, title, repeat, alarm }, plan, { ask: true });
   return { reminder: await requireReminder(id), alert };
 }
 
 /**
- * Marks a reminder done, dismissed or cancelled, and cancels its alert. A daily
- * reminder that's done or dismissed only skips today: it stays scheduled and
- * rings again tomorrow. Cancelling stops it for good.
+ * Marks a reminder done, dismissed or cancelled, cancels its alert and stops an alarm
+ * that's ringing or snoozed. A daily reminder that's done or dismissed only skips
+ * today: it stays scheduled and rings again tomorrow. Cancelling stops it for good.
  * `alertCleared` is false when an alert that should be gone may still go off.
  */
 export async function setReminderStatus(
@@ -129,6 +137,7 @@ export async function setReminderStatus(
   status: Exclude<ReminderStatus, 'scheduled'>,
 ): Promise<{ reminder: Reminder; alertCleared: boolean }> {
   const current = await requireReminder(id);
+  await silenceAlarm(id);
   if (current.repeat === 'daily' && current.status === 'scheduled' && status !== 'cancelled') {
     return skipToday(current);
   }
@@ -137,6 +146,32 @@ export async function setReminderStatus(
   notifyTableChanged('reminders');
   const alertCleared = await disarmAlert(id);
   return { reminder: await requireReminder(id), alertCleared };
+}
+
+/**
+ * Rings a reminder again in `SNOOZE_MINUTES`, as an alarm, and takes the alert that's
+ * showing off the screen. The reminder itself doesn't change: Done or Dismiss still
+ * closes it, and they cancel the snooze too.
+ */
+export async function snoozeReminder(id: number): Promise<AlertOutcome> {
+  const reminder = await requireReminder(id);
+  if (reminder.status !== 'scheduled') throw new Error('That reminder is already closed.');
+  await silenceAlarm(id);
+  if ((await getNotificationPermission()) !== 'granted') return 'no-permission';
+  const at = Date.now() + SNOOZE_MINUTES * 60_000;
+  try {
+    await scheduleNotification({
+      identifier: snoozeId(id),
+      title: reminder.title,
+      body: `Snoozed · ${formatTime(at)}`,
+      at,
+      alarm: true,
+      data: { reminderId: id, scheduledAt: at, snooze: true, alarm: true },
+    });
+    return 'scheduled';
+  } catch {
+    return 'failed';
+  }
 }
 
 // Done or dismissed, for a daily reminder: today's time is skipped and the repeat carries on.
@@ -157,6 +192,7 @@ export async function deleteReminder(id: number): Promise<{ alertCleared: boolea
   const deleted = await deleteReminderRow(id);
   if (!deleted) throw new Error('That reminder no longer exists.');
   notifyTableChanged('reminders');
+  await silenceAlarm(id);
   return { alertCleared: await disarmAlert(id) };
 }
 
@@ -165,12 +201,15 @@ export async function deleteReminder(id: number): Promise<{ alertCleared: boolea
  * the soonest upcoming ones that are missing or out of date, and cancels the rest.
  * A daily reminder keeps one daily alert, swapped in for a one-off alert once a
  * skipped day has passed. The two can drift apart because they can't share a
- * transaction. Never asks for permission.
+ * transaction. A snooze stays only while its reminder is still open. Never asks
+ * for permission.
  */
 export async function syncReminderAlerts(): Promise<void> {
   if ((await getNotificationPermission()) !== 'granted') return;
   const now = Date.now();
-  const upcoming = (await selectReminders())
+  const reminders = await selectReminders();
+  const open = new Set(reminders.filter((r) => r.status === 'scheduled').map((r) => r.id));
+  const upcoming = reminders
     .flatMap((reminder) => {
       const plan = planAlert(reminder, now);
       return plan ? [{ reminder, plan }] : [];
@@ -181,10 +220,15 @@ export async function syncReminderAlerts(): Promise<void> {
 
   const pending = new Set<number>();
   for (const { identifier, data } of await getScheduledNotifications()) {
+    const snooze = SNOOZE_ID.exec(identifier);
+    if (snooze) {
+      if (!open.has(Number(snooze[1]))) await cancelNotification(identifier).catch(() => undefined);
+      continue;
+    }
     const match = ALERT_ID.exec(identifier);
     if (!match) continue;
     const alert = wanted.get(Number(match[1]));
-    if (alert && isAlertCurrent(alert.plan, data)) {
+    if (alert && isAlertCurrent(alert.plan, data, alert.reminder.alarm)) {
       pending.add(alert.reminder.id);
     } else {
       await cancelNotification(identifier).catch(() => undefined);
@@ -218,13 +262,18 @@ export function reminderIdFromNotification(data: Record<string, unknown>): numbe
     : null;
 }
 
+/** Whether a notification is a reminder ringing as an alarm, snoozed or not. */
+export function isAlarmNotification(data: NotificationData): boolean {
+  return reminderIdFromNotification(data) !== null && data.alarm === true;
+}
+
 // Schedules the alert `plan` asks for, replacing any pending one; a null plan clears it.
 async function armAlert(
   reminder: AlertTarget,
   plan: AlertPlan | null,
   { ask }: { ask: boolean },
 ): Promise<AlertOutcome> {
-  const { id, title, repeat } = reminder;
+  const { id, title, repeat, alarm } = reminder;
   if (plan === null) {
     await disarmAlert(id);
     return 'none';
@@ -237,13 +286,15 @@ async function armAlert(
       await updateReminderRow(id, { notificationId: null }, { touch: false });
       return 'no-permission';
     }
+    const kind = repeat === 'daily' ? 'Every day' : alarm ? 'Alarm' : 'Reminder';
     const notificationId = await scheduleNotification({
       identifier: alertId(id),
       title,
-      body: `${repeat === 'daily' ? 'Every day' : 'Reminder'} · ${formatTime(plan.at)}`,
+      body: `${kind} · ${formatTime(plan.at)}`,
       at: plan.at,
       repeat: plan.kind === 'daily' ? 'daily' : undefined,
-      data: alertData(id, plan),
+      alarm,
+      data: alertData(id, plan, alarm),
     });
     await updateReminderRow(id, { notificationId }, { touch: false });
     return 'scheduled';
@@ -262,8 +313,22 @@ async function disarmAlert(id: number): Promise<boolean> {
   }
 }
 
+// Stops a reminder's alarm: cancels a pending snooze, and takes an alert that's showing
+// off the screen, which also stops its sound. Nothing to do is fine.
+async function silenceAlarm(id: number): Promise<void> {
+  await Promise.all([
+    cancelNotification(snoozeId(id)),
+    dismissNotification(alertId(id)),
+    dismissNotification(snoozeId(id)),
+  ]).catch(() => undefined);
+}
+
 function alertId(reminderId: number): string {
   return `reminder-${reminderId}`;
+}
+
+function snoozeId(reminderId: number): string {
+  return `reminder-${reminderId}-snooze`;
 }
 
 async function requireReminder(id: number): Promise<Reminder> {

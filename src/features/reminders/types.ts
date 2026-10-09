@@ -10,6 +10,8 @@ export type Reminder = {
   scheduledAt: number;
   /** Null for a one-off reminder. */
   repeat: ReminderRepeat | null;
+  /** Rings like an alarm (alarm volume, Snooze and Done) instead of a plain notification. */
+  alarm: boolean;
   status: ReminderStatus;
   /** The phone's id for the pending notification. Null when no alert is scheduled. */
   notificationId: string | null;
@@ -25,11 +27,13 @@ export type NewReminder = {
   scheduledAt: number;
   /** Leave it out for a one-off reminder. */
   repeat?: ReminderRepeat;
+  /** Leave it out for a plain notification. */
+  alarm?: boolean;
   taskId?: number | null;
 };
 
 /** `repeat: null` turns a repeating reminder into a one-off. */
-export type ReminderChanges = Partial<Pick<Reminder, 'title' | 'scheduledAt' | 'repeat'>>;
+export type ReminderChanges = Partial<Pick<Reminder, 'title' | 'scheduledAt' | 'repeat' | 'alarm'>>;
 
 /**
  * Whether the phone will alert at the reminder's time: `scheduled`, `no-permission`

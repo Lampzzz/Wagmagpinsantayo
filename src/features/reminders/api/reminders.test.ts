@@ -6,6 +6,7 @@ import {
   getReminder,
   listReminders,
   setReminderStatus,
+  snoozeReminder,
   syncReminderAlerts,
   updateReminder,
 } from './reminders';
@@ -21,11 +22,14 @@ type MockAlert = {
   body: string;
   at: number;
   repeat?: 'daily';
+  alarm?: boolean;
   data: Record<string, unknown>;
 };
 
 const mockRows = new Map<number, MockRow>();
 const mockAlerts = new Map<string, MockAlert>();
+// Notifications taken off the screen, in order.
+const mockDismissed: string[] = [];
 const mockState = { now: 0, nextId: 1, permission: 'granted', scheduled: 0 };
 
 jest.mock('./reminder-rows', () => {
@@ -45,7 +49,9 @@ jest.mock('./reminder-rows', () => {
       const row = mockRows.get(id);
       return row ? read(row) : null;
     },
-    insertReminder: async (input: Pick<MockRow, 'title' | 'scheduledAt' | 'repeat' | 'taskId'>) => {
+    insertReminder: async (
+      input: Pick<MockRow, 'title' | 'scheduledAt' | 'repeat' | 'alarm' | 'taskId'>,
+    ) => {
       const id = mockState.nextId++;
       mockRows.set(id, {
         id,
@@ -78,6 +84,9 @@ jest.mock('./reminder-rows', () => {
 jest.mock('@/lib/notifications', () => ({
   cancelNotification: async (identifier: string) => {
     mockAlerts.delete(identifier);
+  },
+  dismissNotification: async (identifier: string) => {
+    mockDismissed.push(identifier);
   },
   ensureNotificationPermission: async () => mockState.permission,
   getNotificationPermission: async () => mockState.permission,
@@ -114,6 +123,7 @@ function alertFor(id: number) {
 beforeEach(() => {
   mockRows.clear();
   mockAlerts.clear();
+  mockDismissed.length = 0;
   Object.assign(mockState, { now: NOW, nextId: 1, permission: 'granted', scheduled: 0 });
   jest.spyOn(Date, 'now').mockImplementation(() => mockState.now);
 });
@@ -268,5 +278,122 @@ describe('every-day reminders', () => {
     expect(alert).toBe('no-permission');
     expect(reminder).toMatchObject({ repeat: 'daily', notificationId: null });
     expect(mockAlerts.size).toBe(0);
+  });
+});
+
+describe('alarm reminders', () => {
+  function snoozeFor(id: number) {
+    return mockAlerts.get(`reminder-${id}-snooze`);
+  }
+
+  async function createAlarm(changes: { repeat?: 'daily' } = {}) {
+    const { reminder, alert } = await createReminder({
+      title: 'Take my medicine',
+      scheduledAt: at(2026, 10, 10, 20),
+      alarm: true,
+      ...changes,
+    });
+    expect(alert).toBe('scheduled');
+    return reminder;
+  }
+
+  it('ring as an alarm, while plain reminders stay plain', async () => {
+    const alarm = await createAlarm();
+    expect(alarm.alarm).toBe(true);
+    expect(alertFor(alarm.id)).toMatchObject({
+      alarm: true,
+      body: 'Alarm · 8:00 PM',
+      data: { reminderId: alarm.id, alarm: true },
+    });
+
+    const { reminder: plain } = await createReminder({
+      title: 'Call Lola',
+      scheduledAt: at(2026, 10, 10, 21),
+    });
+    expect(plain.alarm).toBe(false);
+    expect(alertFor(plain.id)?.alarm).toBe(false);
+    expect(alertFor(plain.id)?.data).not.toHaveProperty('alarm');
+  });
+
+  it('move between alarm and plain when the switch is flipped', async () => {
+    const { reminder } = await createReminder({
+      title: 'Call Lola',
+      scheduledAt: at(2026, 10, 10, 20),
+    });
+    const ringing = await updateReminder(reminder.id, { alarm: true });
+    expect(ringing.reminder.alarm).toBe(true);
+    expect(alertFor(reminder.id)).toMatchObject({ alarm: true, data: { alarm: true } });
+
+    const quiet = await updateReminder(reminder.id, { alarm: false });
+    expect(quiet.reminder.alarm).toBe(false);
+    expect(alertFor(reminder.id)?.data).not.toHaveProperty('alarm');
+  });
+
+  it('are re-armed by the sync when the pending alert is a plain one', async () => {
+    const reminder = await createAlarm({ repeat: 'daily' });
+    const pending = alertFor(reminder.id)!;
+    mockAlerts.set(pending.identifier, {
+      ...pending,
+      alarm: false,
+      data: { reminderId: reminder.id, scheduledAt: pending.at, repeat: 'daily' },
+    });
+    await syncReminderAlerts();
+    expect(alertFor(reminder.id)).toMatchObject({ alarm: true, repeat: 'daily' });
+  });
+
+  it('snooze for 10 minutes, taking the ringing alert off the screen', async () => {
+    const reminder = await createAlarm();
+    setNow(at(2026, 10, 10, 20, 1));
+    expect(await snoozeReminder(reminder.id)).toBe('scheduled');
+    expect(snoozeFor(reminder.id)).toMatchObject({
+      alarm: true,
+      at: at(2026, 10, 10, 20, 11),
+      body: 'Snoozed · 8:11 PM',
+      data: { reminderId: reminder.id, snooze: true, alarm: true },
+    });
+    expect(mockDismissed).toContain(`reminder-${reminder.id}`);
+    // The reminder itself is untouched.
+    expect(await getReminder(reminder.id)).toMatchObject({
+      status: 'scheduled',
+      scheduledAt: at(2026, 10, 10, 20),
+    });
+  });
+
+  it('stop snoozing when marked done or deleted', async () => {
+    const first = await createAlarm();
+    const second = await createAlarm({ repeat: 'daily' });
+    setNow(at(2026, 10, 10, 20, 1));
+    await snoozeReminder(first.id);
+    await snoozeReminder(second.id);
+
+    mockDismissed.length = 0;
+    await setReminderStatus(first.id, 'completed');
+    expect(snoozeFor(first.id)).toBeUndefined();
+    expect(mockDismissed).toEqual(
+      expect.arrayContaining([`reminder-${first.id}`, `reminder-${first.id}-snooze`]),
+    );
+
+    await deleteReminder(second.id);
+    expect(snoozeFor(second.id)).toBeUndefined();
+  });
+
+  it("can't be snoozed once closed", async () => {
+    const reminder = await createAlarm();
+    await setReminderStatus(reminder.id, 'cancelled');
+    await expect(snoozeReminder(reminder.id)).rejects.toThrow();
+    expect(snoozeFor(reminder.id)).toBeUndefined();
+  });
+
+  it('keep a snooze through the sync only while the reminder is open', async () => {
+    const reminder = await createAlarm();
+    setNow(at(2026, 10, 10, 20, 1));
+    await snoozeReminder(reminder.id);
+    await syncReminderAlerts();
+    expect(snoozeFor(reminder.id)).toBeDefined();
+
+    // Closed some other way, without going through setReminderStatus.
+    mockRows.get(reminder.id)!.status = 'completed';
+    await syncReminderAlerts();
+    expect(snoozeFor(reminder.id)).toBeUndefined();
   });
 });

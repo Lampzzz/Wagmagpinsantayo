@@ -9,21 +9,43 @@ const DISTANCE = [3.5, 40] as const;
 const TURN_PER_PX = 0.006;
 const TILT_PER_PX = 0.004;
 
+// The close-up while you talk to Pinsan (focusPinsan): near and almost level, looking at a
+// point above his chest so his head sits in the middle of the screen with room above it for
+// the speech bubble. The camera keeps its direction, because Pinsan turns to face it whenever
+// his mood isn't idle.
+export const FOCUS = { distance: 3.1, elevation: 0.06, height: 1.25 };
+
 export const orbit = {
   ...ORBIT_HOME,
   /** Leftover turning speed after a flick, in radians per second. */
   spin: 0,
   dragging: false,
   pinchFrom: ORBIT_HOME.distance,
+  /** True while the camera is close up on Pinsan. */
+  focused: false,
 };
+
+/** Glide the camera in to Pinsan's face. */
+export function focusPinsan() {
+  orbit.focused = true;
+  orbit.spin = 0;
+}
+
+/** Glide back to the view from before focusPinsan(). */
+export function releaseFocus() {
+  orbit.focused = false;
+}
 
 function clamp(value: number, [min, max]: readonly [number, number]) {
   return Math.min(Math.max(value, min), max);
 }
 
+// Touch always wins: turning, tilting or zooming by hand ends a close-up.
+
 export function startDrag() {
   orbit.dragging = true;
   orbit.spin = 0;
+  orbit.focused = false;
 }
 
 /** Drag right turns the island with your finger; drag down looks from higher up. */
@@ -42,6 +64,7 @@ export function endDrag() {
 
 export function startPinch() {
   orbit.pinchFrom = orbit.distance;
+  orbit.focused = false;
 }
 
 export function pinch(scale: number) {
@@ -51,6 +74,7 @@ export function pinch(scale: number) {
 /** Zoom from a button: a factor below 1 moves closer, above 1 moves away. */
 export function zoomBy(factor: number) {
   orbit.distance = clamp(orbit.distance * factor, DISTANCE);
+  orbit.focused = false;
 }
 
 /** Glide back to the home view, unwinding the short way round. */
@@ -59,6 +83,7 @@ export function resetOrbit() {
   orbit.elevation = ORBIT_HOME.elevation;
   orbit.distance = ORBIT_HOME.distance;
   orbit.spin = 0;
+  orbit.focused = false;
 }
 
 /** Called every frame: carry on turning after a flick, slowing down. */

@@ -1,11 +1,12 @@
 import { getDatabase } from '@/lib/db';
 
-import type { Reminder, ReminderStatus } from '../types';
+import type { Reminder, ReminderRepeat, ReminderStatus } from '../types';
 
 type ReminderRow = {
   id: number;
   title: string;
   scheduled_at: number;
+  repeat: string | null;
   status: string;
   notification_id: string | null;
   task_id: number | null;
@@ -17,6 +18,7 @@ type ReminderRow = {
 type ReminderFields = Partial<{
   title: string;
   scheduledAt: number;
+  repeat: ReminderRepeat | null;
   status: ReminderStatus;
   notificationId: string | null;
 }>;
@@ -24,8 +26,8 @@ type ReminderFields = Partial<{
 const STATUSES: readonly string[] = ['scheduled', 'completed', 'dismissed', 'cancelled'];
 
 // The linked task's title comes along for display.
-const SELECT_REMINDERS = `SELECT r.id, r.title, r.scheduled_at, r.status, r.notification_id,
-    r.task_id, t.title AS task_title, r.created_at, r.updated_at
+const SELECT_REMINDERS = `SELECT r.id, r.title, r.scheduled_at, r.repeat, r.status,
+    r.notification_id, r.task_id, t.title AS task_title, r.created_at, r.updated_at
   FROM reminders r LEFT JOIN tasks t ON t.id = r.task_id`;
 
 export async function selectReminders(): Promise<Reminder[]> {
@@ -43,15 +45,17 @@ export async function selectReminder(id: number): Promise<Reminder | null> {
 export async function insertReminder(input: {
   title: string;
   scheduledAt: number;
+  repeat: ReminderRepeat | null;
   taskId: number | null;
 }): Promise<number> {
   const now = Date.now();
   const db = await getDatabase();
   const { lastInsertRowId } = await db.runAsync(
-    `INSERT INTO reminders (title, scheduled_at, task_id, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?)`,
+    `INSERT INTO reminders (title, scheduled_at, repeat, task_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
     input.title,
     input.scheduledAt,
+    input.repeat,
     input.taskId,
     now,
     now,
@@ -77,6 +81,10 @@ export async function updateReminderRow(
   if (fields.scheduledAt !== undefined) {
     assignments.push('scheduled_at = ?');
     values.push(fields.scheduledAt);
+  }
+  if (fields.repeat !== undefined) {
+    assignments.push('repeat = ?');
+    values.push(fields.repeat);
   }
   if (fields.status !== undefined) {
     assignments.push('status = ?');
@@ -118,6 +126,7 @@ function toReminder(row: ReminderRow): Reminder {
     id: row.id,
     title: row.title,
     scheduledAt: row.scheduled_at,
+    repeat: row.repeat === 'daily' ? 'daily' : null,
     status: STATUSES.includes(row.status) ? (row.status as ReminderStatus) : 'scheduled',
     notificationId: row.notification_id,
     taskId: row.task_id,

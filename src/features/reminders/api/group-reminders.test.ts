@@ -13,6 +13,7 @@ function reminder(id: number, changes: Partial<Reminder> = {}): Reminder {
     id,
     title: `Reminder ${id}`,
     scheduledAt: at(2026, 10, 9, 9),
+    repeat: null,
     status: 'scheduled',
     notificationId: `reminder-${id}`,
     taskId: null,

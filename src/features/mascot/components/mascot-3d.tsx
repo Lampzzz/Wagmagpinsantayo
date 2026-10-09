@@ -1,7 +1,9 @@
-import { Canvas } from '@react-three/fiber/native';
+import { Canvas, useThree } from '@react-three/fiber/native';
+import { useEffect } from 'react';
 import { PixelRatio, StyleSheet, View } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
 
+import { useMascotStore } from '../hooks/use-mascot';
 import { useSceneActive } from '../hooks/use-scene-active';
 import { useSceneGestures } from '../hooks/use-scene-gestures';
 import { LIGHTS } from '../scene/lighting';
@@ -18,9 +20,25 @@ const RENDER_SCALE = Math.max(1, PixelRatio.get() / 2);
 const LOW_RES_SIZE = `${100 / RENDER_SCALE}%` as const;
 const LOW_RES_INSET = `${(100 - 100 / RENDER_SCALE) / 2}%` as const;
 
+// While the on-device model answers (mood 'thinking'), draw at most this many frames a second,
+// so the phone's cores and memory bandwidth go to the model instead of the island.
+const THINKING_FPS = 15;
+
+/** Asks for a frame THINKING_FPS times a second while the canvas only draws on demand. */
+function ThinkingTicker() {
+  const invalidate = useThree((s) => s.invalidate);
+  useEffect(() => {
+    const timer = setInterval(() => invalidate(), 1000 / THINKING_FPS);
+    return () => clearInterval(timer);
+  }, [invalidate]);
+  return null;
+}
+
 export function Mascot3D() {
   const active = useSceneActive();
+  const thinking = useMascotStore((s) => s.mood === 'thinking');
   const gesture = useSceneGestures();
+  const frameloop = !active ? 'never' : thinking ? 'demand' : 'always';
 
   return (
     <View style={styles.fill}>
@@ -29,7 +47,7 @@ export function Mascot3D() {
             (MSAA) is off: at 2 pixels per point it costs more than it shows. */}
         <Canvas
           style={styles.fill}
-          frameloop={active ? 'always' : 'never'}
+          frameloop={frameloop}
           gl={{ antialias: false }}
           camera={{ fov: 42, near: 0.1, far: 200 }}
         >
@@ -44,6 +62,7 @@ export function Mascot3D() {
           />
           <Island />
           <PinsanRig viewScale={RENDER_SCALE} />
+          {frameloop === 'demand' && <ThinkingTicker />}
           {__DEV__ && <FrameCounter />}
         </Canvas>
       </View>

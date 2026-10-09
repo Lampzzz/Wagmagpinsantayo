@@ -1,13 +1,14 @@
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { COLORS } from '@/constants/theme';
 import { TaskList } from '@/features/tasks';
 
-export default function TasksScreen() {
+export default function TasksRoute() {
   return (
-    <View style={styles.container}>
+    <SafeAreaView edges={['bottom']} style={styles.container}>
       <TaskList />
-    </View>
+    </SafeAreaView>
   );
 }
 

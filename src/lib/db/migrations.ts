@@ -41,4 +41,7 @@ export const MIGRATIONS: readonly string[] = [
     updated_at INTEGER NOT NULL
   );
   CREATE INDEX reminders_by_status_and_time ON reminders (status, scheduled_at);`,
+
+  // 3: every-day reminders. `repeat` is 'daily', or NULL for a one-off reminder.
+  `ALTER TABLE reminders ADD COLUMN repeat TEXT;`,
 ];

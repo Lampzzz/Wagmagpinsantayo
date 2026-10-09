@@ -174,8 +174,8 @@ Delete this note before submitting.
 >   expressions, walk cycle, details) and the scene, prop and sky reference images. Image model:
 >   [PLACEHOLDER: name of the AI image model or tool]. Our script `scripts/bake-island.py` turns
 >   the map into the ground texture and layout data. Only the map is in the repository.
-> - Design inspiration: the Tolan app's screens on Mobbin, for layout patterns only. Pinsan is an
->   original character, and no Tolan assets are used.
+> - Design inspiration: layout patterns from companion apps on Mobbin. Pinsan is an original
+>   character, and no assets from other apps are used.
 > - Planning notes (rules summary and idea lists) were started during the briefing, before
 >   building began at 2:30 PM. They contain no code.
 > - Agent instructions for AI coding tools (`AGENTS.md`, `CLAUDE.md`, `.claude/skills/`) were added

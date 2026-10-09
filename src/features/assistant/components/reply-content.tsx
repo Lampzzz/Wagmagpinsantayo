@@ -237,8 +237,8 @@ const styles = StyleSheet.create({
     color: COLORS.text,
   },
   largeText: {
-    fontSize: 18,
-    lineHeight: 25,
+    fontSize: 17,
+    lineHeight: 24,
   },
   troubleText: {
     color: COLORS.warning,
@@ -298,8 +298,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: SPACING.sm,
   },
+  // As tall as the chips beside it.
   yes: {
-    minHeight: 48,
+    minHeight: 44,
     paddingHorizontal: SPACING.lg,
   },
 });

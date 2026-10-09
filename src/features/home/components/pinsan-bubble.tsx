@@ -26,6 +26,7 @@ import { BUBBLE_SIDE_MARGIN, placeBubble, TAIL_LENGTH, type BubbleArea } from '.
 
 const MAX_WIDTH = 360;
 const THINKING_WIDTH = 150;
+const CLOSE_SIZE = 28;
 // The tail is a square turned 45°, half hidden under the bubble.
 const TAIL_SQUARE = Math.round(TAIL_LENGTH * Math.SQRT2);
 const TAIL_INSET = RADII.xl;
@@ -83,7 +84,6 @@ export function PinsanBubble({
           style={styles.scroll}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
         >
           <ReplyContent
             reply={reply}
@@ -130,11 +130,12 @@ function CloseButton({ onPress }: { onPress: () => void }) {
       accessibilityRole="button"
       accessibilityLabel="Close"
       accessibilityHint="Closes Pinsan's reply"
-      hitSlop={SPACING.sm}
+      // 28 pt to look at, 48 pt to tap.
+      hitSlop={(48 - CLOSE_SIZE) / 2}
       onPress={onPress}
       style={({ pressed }) => [styles.close, pressed && styles.closePressed]}
     >
-      <Icon ios="xmark" android="close" color={COLORS.text} size={18} />
+      <Icon ios="xmark" android="close" color={COLORS.text} size={16} />
     </Pressable>
   );
 }
@@ -213,14 +214,14 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     borderRadius: RADII.xl,
   },
+  // Compact, so a Quick Add proposal fits between the title and Pinsan's head.
   content: {
     gap: SPACING.sm + SPACING.xs,
-    padding: SPACING.md + SPACING.xs,
-    paddingTop: SPACING.md,
+    padding: SPACING.md,
   },
   close: {
-    width: 32,
-    height: 32,
+    width: CLOSE_SIZE,
+    height: CLOSE_SIZE,
     marginStart: 'auto',
     marginEnd: -SPACING.xs,
     marginTop: -SPACING.xs,

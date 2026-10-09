@@ -5,14 +5,22 @@ import {
   FlatList,
   Pressable,
   StyleSheet,
-  Text,
   View,
   type ListRenderItem,
 } from 'react-native';
 
 import { Button } from '@/components/ui/button';
 import { Notice } from '@/components/ui/notice';
-import { COLORS, FONT_SIZES, RADII, SPACING } from '@/constants/theme';
+import { Text } from '@/components/ui/text';
+import {
+  COLORS,
+  FONT_SIZES,
+  FONTS,
+  PRESSED_SCALE,
+  RADII,
+  SHADOWS,
+  SPACING,
+} from '@/constants/theme';
 import { formatShortDate } from '@/utils/format-short-date';
 
 import { useNotes } from '../hooks/use-notes';
@@ -45,7 +53,7 @@ export function NotesList() {
       ) : (
         <View style={styles.message}>
           {status === 'loading' ? (
-            <ActivityIndicator color={COLORS.primary} />
+            <ActivityIndicator color={COLORS.primaryDark} />
           ) : (
             <>
               <Notice text="Couldn't load your notes." />
@@ -148,15 +156,16 @@ const styles = StyleSheet.create({
   row: {
     gap: SPACING.xs,
     padding: SPACING.md,
-    borderRadius: RADII.md,
+    borderRadius: RADII.lg,
     backgroundColor: COLORS.surface,
+    ...SHADOWS.card,
   },
   rowPressed: {
-    opacity: 0.8,
+    transform: [{ scale: PRESSED_SCALE }],
   },
   rowTitle: {
+    fontFamily: FONTS.bodyBold,
     fontSize: FONT_SIZES.body,
-    fontWeight: '600',
     color: COLORS.text,
   },
   rowPreview: {
@@ -173,8 +182,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyTitle: {
+    fontFamily: FONTS.display,
     fontSize: FONT_SIZES.title,
-    fontWeight: '700',
     color: COLORS.text,
   },
   hint: {

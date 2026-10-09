@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 
-import { COLORS, FONT_SIZES, SPACING } from '@/constants/theme';
+import { COLORS, FONT_SIZES, FONTS, SPACING } from '@/constants/theme';
 
 import type { NoteContent } from '../types';
 
@@ -61,12 +61,13 @@ const styles = StyleSheet.create({
   },
   title: {
     paddingVertical: SPACING.sm,
+    fontFamily: FONTS.display,
     fontSize: FONT_SIZES.title,
-    fontWeight: '700',
     color: COLORS.text,
   },
   body: {
     flex: 1,
+    fontFamily: FONTS.body,
     fontSize: FONT_SIZES.body,
     lineHeight: 24,
     color: COLORS.text,

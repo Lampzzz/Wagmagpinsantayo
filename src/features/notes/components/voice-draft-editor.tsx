@@ -1,10 +1,19 @@
 import { useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 import { Button } from '@/components/ui/button';
 import { Notice } from '@/components/ui/notice';
-import { COLORS, FONT_SIZES, RADII, SPACING } from '@/constants/theme';
+import { Text } from '@/components/ui/text';
+import {
+  COLORS,
+  FONT_SIZES,
+  FONTS,
+  PRESSED_SCALE,
+  RADII,
+  SHADOWS,
+  SPACING,
+} from '@/constants/theme';
 import { countWords } from '@/utils/count-words';
 
 import { useCreateNote } from '../hooks/use-create-note';
@@ -83,7 +92,7 @@ function WhatYouSaid({ transcript }: { transcript: string }) {
         accessibilityRole="button"
         accessibilityState={{ expanded: open }}
         onPress={() => setOpen((value) => !value)}
-        style={styles.toggle}
+        style={({ pressed }) => [styles.toggle, pressed && styles.pressed]}
       >
         <Text style={styles.toggleLabel}>{open ? 'Hide what you said' : 'Show what you said'}</Text>
       </Pressable>
@@ -111,16 +120,20 @@ const styles = StyleSheet.create({
     minHeight: 44,
     justifyContent: 'center',
   },
+  pressed: {
+    transform: [{ scale: PRESSED_SCALE }],
+  },
   toggleLabel: {
+    fontFamily: FONTS.bodyBold,
     fontSize: FONT_SIZES.body,
-    fontWeight: '600',
-    color: COLORS.primary,
+    color: COLORS.primaryDark,
   },
   transcript: {
     maxHeight: 160,
     padding: SPACING.sm,
-    borderRadius: RADII.md,
+    borderRadius: RADII.lg,
     backgroundColor: COLORS.surface,
+    ...SHADOWS.card,
   },
   transcriptText: {
     fontSize: FONT_SIZES.body,

@@ -33,6 +33,8 @@ export function useNoteEditor(noteIdParam?: string) {
   const [times, setTimes] = useState<NoteTimes | null>(null);
   const [saveFailed, setSaveFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  // Bumped when code replaces the content, so the uncontrolled fields remount with it.
+  const [revision, setRevision] = useState(0);
 
   // Saves read these refs when they run, not when they are queued, so each one
   // acts on the latest content and the latest stored row.
@@ -125,6 +127,22 @@ export function useNoteEditor(noteIdParam?: string) {
     [persist],
   );
 
+  /** The content as the editor shows it now, saved or not. */
+  const getContent = useCallback(() => latestRef.current, []);
+
+  /** The stored note's id, or null while it has no row yet. */
+  const getNoteId = useCallback(() => storedRef.current?.id ?? null, []);
+
+  /** Shows new content in the fields and saves it like any other edit. */
+  const replaceContent = useCallback(
+    (content: NoteContent) => {
+      setInitial(content);
+      setRevision((count) => count + 1);
+      onChange(content);
+    },
+    [onChange],
+  );
+
   // iOS can close an inactive app without reporting 'background', so save on both.
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (state) => {
@@ -181,7 +199,11 @@ export function useNoteEditor(noteIdParam?: string) {
     createdAt: times?.createdAt,
     updatedAt: times?.updatedAt,
     saveFailed,
+    revision,
     onChange,
+    getContent,
+    getNoteId,
+    replaceContent,
     remove,
     retry,
   };

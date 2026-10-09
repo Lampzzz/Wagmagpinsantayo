@@ -1,8 +1,10 @@
-# Pinsan AI
+# Couz
 
 A private assistant for tasks, reminders and a journal. You talk to Pinsan, a 3D mascot on a
 floating island. His AI runs on your phone, so he works with no signal, needs no account, and
 what you tell him never leaves the device.
+
+"Couz" is Filipino texting slang for cousin, which is what _pinsan_ means in Tagalog.
 
 Built during the AppBuilders PH Hackathon 2026 (theme: Local AI), Oct 9–10, 2026.
 
@@ -15,7 +17,7 @@ Built during the AppBuilders PH Hackathon 2026 (theme: Local AI), Oct 9–10, 20
 Students and young working Filipinos with unreliable mobile data who want a private assistant.
 
 Mobile data drops out on the commute and in class, and it costs money. Notes and plans are
-personal. Pinsan AI keeps them on the phone and keeps working in airplane mode.
+personal. Couz keeps them on the phone and keeps working in airplane mode.
 
 ## What it does
 

@@ -1,4 +1,4 @@
-# Pinsan AI: Feature Tracker
+# Couz: Feature Tracker
 
 Status of every feature. Tick `[x]` when an item is done, then update the summary table.
 

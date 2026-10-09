@@ -1230,3 +1230,14 @@ describe('runTurn: talking naturally', () => {
     });
   });
 });
+
+describe('runTurn: a misheard name', () => {
+  it('answers "Hello <misheard name>, tell me a joke" with a joke, without the model', async () => {
+    const model = jest.fn(async (): Promise<ModelReading> => ({ commands: [], reply: null }));
+    const world = createWorld({ model });
+    const reply = await world.send('Hello n****, tell me a joke.');
+    expect(reply.isError).toBe(false);
+    expect(reply.text).toMatch(/\?/);
+    expect(model).not.toHaveBeenCalled();
+  });
+});

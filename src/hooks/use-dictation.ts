@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { loadSpeechToText, SPEECH_SAMPLE_RATE_HZ, type SpeechToText } from '@/lib/ai';
 import { MicPermissionError, startMicStream, type MicStream } from '@/lib/audio/mic-stream';
+import { maskProfanity } from '@/utils/mask-profanity';
 
 export type DictationState =
   | { phase: 'idle' }
@@ -188,10 +189,13 @@ async function readTranscript(stt: SpeechToText, onUpdate: (text: string) => voi
   return text;
 }
 
-// Drops Whisper's non-speech tags such as "[BLANK_AUDIO]" and collapses spacing.
+// Drops Whisper's non-speech tags such as "[BLANK_AUDIO]" and collapses spacing. Slurs and
+// swearing are covered up: Whisper can write one for a word it misheard, such as "Pinsan".
 function cleanTranscript(text: string) {
-  return text
-    .replace(/\[[^\]]*\]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  return maskProfanity(
+    text
+      .replace(/\[[^\]]*\]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim(),
+  );
 }

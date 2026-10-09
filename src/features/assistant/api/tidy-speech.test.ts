@@ -11,6 +11,10 @@ describe('tidySpeech', () => {
     ['Remind me to stretch, Pinsan.', 'Remind me to stretch.'],
     ['Thank you, Pinsan!', 'Thank you!'],
     ['Hi Pinsan!', 'Hi,'],
+    // His name misheard as another word, or one that was covered up.
+    ['Hello n****, tell me a joke.', 'Hello, tell me a joke.'],
+    ['Hey Benson, what do I have today?', 'Hey, what do I have today?'],
+    ['Thank you, n****!', 'Thank you!'],
   ])('tidies %p', (text, tidy) => {
     expect(tidySpeech(text)).toBe(tidy);
   });

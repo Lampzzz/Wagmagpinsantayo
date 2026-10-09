@@ -1,6 +1,28 @@
 # Tonight's build plan
 
-Code freeze: **10:00 AM, Oct 10** (Manila). Last updated 12:55 AM, Oct 10.
+Code freeze: **10:00 AM, Oct 10** (Manila). Last updated 2:30 AM, Oct 10.
+
+## Morning checklist for the user (5 AM)
+
+Everything you asked for is merged into `development` in `C:\dev\pinsan` and checked on the
+emulator. Typecheck, lint, Prettier and all 677 tests pass. Nothing has been pushed.
+
+1. **Phone.** Install the release APK from the 3D session (it installs as an update, so the
+   AI models stay). Allow notifications and **Alarms & reminders** (☰ → Reminders → Open
+   settings), or reminders can be up to an hour late. Check ☰ → AI setup says the AI is ready.
+2. **Test on the phone** what the emulator can't: the mic on Home, voice notes, Summarize and
+   Extract Tasks, and a free-form request that needs the model. Measure the
+   `[MEASURE ON DEMO PHONE]` numbers in docs/PITCH.md, and flip "Done, not yet tested on a
+   phone" to "Done" in README.md for what works.
+3. **Decide:** turn off the AI library's download statistics? (`[DECIDE: …]` in
+   docs/SUBMISSION.md. It's one line, `setTelemetryEnabled(false)`, plus a doc update; ask
+   session 2a.)
+4. **Fill the placeholders** in README.md, docs/SUBMISSION.md and docs/PITCH.md: team name,
+   member names, demo video and post URLs, phone model, the AI image tool's name.
+5. **GitHub:** push `development`, set it as the default branch (it's `planning-stage` now,
+   with no app code), and make the repo public.
+6. **Record** the ~1-minute video in airplane mode (script in docs/PITCH.md), post it on X or
+   LinkedIn with #AppBuildersPH, then **submit once** before 10:00 AM.
 
 Every Claude session working on this repo tonight reads this file first. The user is asleep
 until 5 AM and authorized overnight work. Nobody pushes or submits; that waits for the user.
@@ -59,7 +81,7 @@ the W11 and W12 builders.
 | W11 | Assistant skills: call emergency, "write in my journal", "every day"                 | Merged (74d5a67), wired (76c9fae). Emulator OK: red Call 911 confirm, journal entry saved, daily reminder proposal                  |
 | W12 | Journal by day, every-day reminders (migration 3)                                    | Merged (bd3765c). Emulator OK: day strip, a daily reminder rang and rescheduled for the next day                                    |
 | W13 | Conversation history saved by day (migration 4)                                      | Merged (ca5730e). Emulator OK: Conversations → History by day, Clear. Metro now on 8089                                             |
-| W14 | Docs match tonight's app: README, SUBMISSION, PITCH, FEATURES                        | Building in `feat/docs-final`                                                                                                       |
+| W14 | Docs match tonight's app: README, SUBMISSION, PITCH, FEATURES                        | Merged (91181de). The team fills the placeholders after the phone test                                                              |
 | W9  | Final merge and checks, release APK, then push, video, submit                        | Code final candidate at 92236a2 (2:15 AM, all checks, regression OK). APK by 2e; then the user at 5 AM                              |
 
 ## File ownership

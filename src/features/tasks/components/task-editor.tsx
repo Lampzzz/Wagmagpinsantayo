@@ -20,7 +20,7 @@ import {
   SHADOWS,
   SPACING,
 } from '@/constants/theme';
-import { useReminders } from '@/features/reminders';
+import { createReminder, useReminders } from '@/features/reminders';
 import { useNow } from '@/hooks/use-now';
 import { capitalize } from '@/utils/capitalize';
 import { formatWhen } from '@/utils/format-when';
@@ -29,7 +29,7 @@ import { parseId } from '@/utils/parse-id';
 import { isTaskOverdue } from '../api/group-tasks';
 import { createTask, deleteTask, setTaskDone, updateTask } from '../api/tasks';
 import { useTask } from '../hooks/use-task';
-import type { Task, TaskPriority } from '../types';
+import type { NewTask, Task, TaskPriority } from '../types';
 
 const PRIORITIES: { value: TaskPriority; label: string }[] = [
   { value: 'low', label: 'Low' },
@@ -37,15 +37,23 @@ const PRIORITIES: { value: TaskPriority; label: string }[] = [
   { value: 'high', label: 'High' },
 ];
 
+/** A new task filled in ahead, such as a Quick Add proposal the user wants to change. */
+type TaskDraft = NewTask & {
+  /** Offers a reminder at the due time, on to start with, as Quick Add would set. */
+  remind?: boolean;
+};
+
 type TaskEditorProps = {
   /** The task's id from the route. Leave it out to add a new task. */
   taskId?: string;
+  /** Starting values for a new task. */
+  prefill?: TaskDraft;
   onClose: () => void;
 };
 
 /** Adds a task, or shows and edits one: title, deadline, priority, notes and reminders. */
-export function TaskEditor({ taskId, onClose }: TaskEditorProps) {
-  if (taskId === undefined) return <TaskForm task={null} onClose={onClose} />;
+export function TaskEditor({ taskId, prefill, onClose }: TaskEditorProps) {
+  if (taskId === undefined) return <TaskForm task={null} draft={prefill} onClose={onClose} />;
   const id = parseId(taskId);
   if (id === null) return <Missing />;
   return <SavedTask id={id} onClose={onClose} />;
@@ -84,32 +92,37 @@ function Missing() {
 type TaskFormProps = {
   /** Null for a new task. */
   task: Task | null;
+  /** Starting values for a new task. */
+  draft?: TaskDraft;
   onClose: () => void;
 };
 
-function TaskForm({ task, onClose }: TaskFormProps) {
+function TaskForm({ task, draft, onClose }: TaskFormProps) {
   const now = useNow();
+  const start = task ?? draft;
+  const base =
+    start?.dueAt === undefined || start.dueAt === null
+      ? null
+      : { at: start.dueAt, hasTime: start.dueHasTime ?? false };
   const [initialWhen] = useState(() =>
-    task === null || task.dueAt === null
-      ? ''
-      : capitalize(formatWhen(task.dueAt, task.dueHasTime, Date.now())),
+    base === null ? '' : capitalize(formatWhen(base.at, base.hasTime, Date.now())),
   );
-  const [title, setTitle] = useState(task?.title ?? '');
-  const [notes, setNotes] = useState(task?.description ?? '');
-  const [priority, setPriority] = useState<TaskPriority>(task?.priority ?? 'normal');
+  const [title, setTitle] = useState(start?.title ?? '');
+  const [notes, setNotes] = useState(start?.description ?? '');
+  const [priority, setPriority] = useState<TaskPriority>(start?.priority ?? 'normal');
   const [whenText, setWhenText] = useState(initialWhen);
+  const [remind, setRemind] = useState(draft?.remind ?? false);
   const [saving, setSaving] = useState(false);
 
-  const base =
-    task === null || task.dueAt === null ? null : { at: task.dueAt, hasTime: task.dueHasTime };
-  // Untouched, the saved deadline stands, even if it has passed since.
+  // Untouched, the saved or proposed deadline stands, even if it has passed since.
   const whenInput: WhenInput =
-    task && whenText === initialWhen
+    start && whenText === initialWhen
       ? base
         ? { kind: 'ok', ...base }
         : { kind: 'empty' }
       : readWhenInput(whenText, 'task', now, base);
   const canSave = title.trim() !== '' && whenInput.kind !== 'invalid' && !saving;
+  const remindAt = whenInput.kind === 'ok' ? reminderTime(whenInput, now) : null;
 
   const save = async () => {
     if (!canSave) return;
@@ -118,14 +131,30 @@ function TaskForm({ task, onClose }: TaskFormProps) {
       whenInput.kind === 'ok'
         ? { dueAt: whenInput.at, dueHasTime: whenInput.hasTime }
         : { dueAt: null, dueHasTime: false };
+    let created: Task;
     try {
-      if (task) await updateTask(task.id, { title, description: notes, priority, ...due });
-      else await createTask({ title, description: notes, priority, ...due });
-      onClose();
+      if (task) {
+        await updateTask(task.id, { title, description: notes, priority, ...due });
+        onClose();
+        return;
+      }
+      created = await createTask({ title, description: notes, priority, ...due });
     } catch {
       setSaving(false);
       Alert.alert("Couldn't save the task", 'Please try again.');
+      return;
     }
+    if (remind && remindAt !== null) {
+      try {
+        await createReminder({ title: created.title, scheduledAt: remindAt, taskId: created.id });
+      } catch {
+        Alert.alert(
+          'The task is saved',
+          "But its reminder couldn't be set. Add one from the task.",
+        );
+      }
+    }
+    onClose();
   };
 
   const toggleDone = async () => {
@@ -190,6 +219,15 @@ function TaskForm({ task, onClose }: TaskFormProps) {
             input={whenInput}
             now={now}
           />
+          {draft?.remind && (
+            <DueReminder
+              on={remind}
+              remindAt={remindAt}
+              hasDue={whenInput.kind === 'ok'}
+              now={now}
+              onToggle={() => setRemind((value) => !value)}
+            />
+          )}
           <View style={styles.field}>
             <Text style={styles.label}>Priority</Text>
             <View accessibilityRole="radiogroup" style={styles.chips}>
@@ -230,6 +268,53 @@ function TaskForm({ task, onClose }: TaskFormProps) {
         </View>
       </KeyboardAvoidingView>
     </>
+  );
+}
+
+// Quick Add's rule, for a proposal opened here: a reminder at the due time, or at 9:00 AM on a
+// day without a time. None once that time has passed.
+const REMINDER_HOUR = 9;
+
+function reminderTime(due: { at: number; hasTime: boolean }, now: number): number | null {
+  const at = due.hasTime ? due.at : new Date(due.at).setHours(REMINDER_HOUR, 0, 0, 0);
+  return at > now ? at : null;
+}
+
+type DueReminderProps = {
+  on: boolean;
+  remindAt: number | null;
+  hasDue: boolean;
+  now: number;
+  onToggle: () => void;
+};
+
+/** The reminder a Quick Add proposal comes with, saved along with the task. */
+function DueReminder({ on, remindAt, hasDue, now, onToggle }: DueReminderProps) {
+  const available = remindAt !== null;
+  const note = !hasDue
+    ? 'Add a due date to get a reminder.'
+    : !available
+      ? "That time has passed, so there won't be a reminder."
+      : on
+        ? `Reminds you ${formatWhen(remindAt, true, now)}.`
+        : 'No reminder.';
+  return (
+    <View style={styles.field}>
+      <Text style={styles.label}>Reminder</Text>
+      <View style={styles.chips}>
+        <Chip
+          label="Remind me"
+          selected={on && available}
+          disabled={!available}
+          accessibilityRole="switch"
+          accessibilityState={{ checked: on && available, disabled: !available }}
+          onPress={onToggle}
+        />
+      </View>
+      <Text accessibilityLiveRegion="polite" style={styles.note}>
+        {note}
+      </Text>
+    </View>
   );
 }
 
@@ -318,6 +403,11 @@ const styles = StyleSheet.create({
     color: COLORS.text,
   },
   reminderTime: {
+    fontSize: FONT_SIZES.caption,
+    color: COLORS.textMuted,
+  },
+  note: {
+    marginStart: SPACING.xs,
     fontSize: FONT_SIZES.caption,
     color: COLORS.textMuted,
   },

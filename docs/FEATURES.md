@@ -13,7 +13,7 @@ summary table.
 | 1   | Notes                    | ✅ Done        | 14/14    |
 | 2   | Summarize (AI)           | ✅ Done        | 11/11    |
 | 3   | Extract Tasks (AI)       | 🟨 In progress | 9/10     |
-| 4   | Smart Quick Add (AI)     | 🟨 In progress | 12/14    |
+| 4   | Smart Quick Add (AI)     | 🟨 In progress | 13/14    |
 | 5   | Tasks + Reminders        | 🟨 In progress | 3/14     |
 | 6   | Assistant (text + voice) | 🟨 In progress | 7/12     |
 | –   | Behavior across the app  | ⬜ Not started | 0/6      |
@@ -92,7 +92,7 @@ Find the to-dos in a note and turn them into tasks.
 Create a task from one plain-English sentence.
 
 - [x] Sentence → task with title, date, time and reminder (on, at due time)
-- [ ] User can edit any field before saving
+- [x] User can edit any field before saving
 - [x] Code parses dates: today, tomorrow, weekday names, "next week", "Oct 15"
 - [x] Code parses times: "5pm", "17:00", "in 2 hours"
 - [x] AI only cleans up the title (removes date and time words)

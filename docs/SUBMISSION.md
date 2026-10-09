@@ -9,12 +9,20 @@ are no edits or resubmissions, so finish the checklist first.
 ## Before you submit
 
 - [ ] Every `[PLACEHOLDER]` in this file, `README.md` and `docs/PITCH.md` is filled in or removed.
-- [ ] Features that landed are flipped from "In progress" to "Done" in `README.md`, and the
-      "(in progress)" notes below are removed for them.
+- [ ] Every `[MEASURE ON DEMO PHONE]` in `README.md` and `docs/PITCH.md` is measured on the demo
+      phone, or the line is removed.
+- [ ] The `[DECIDE]` note below is decided, and the answers here and in `README.md` match the
+      choice.
+- [ ] After the demo-phone check, every feature that worked is changed from "Done, not yet tested
+      on a phone" to "Done" in `README.md`, and its "(needs the demo phone)" line in
+      `docs/FEATURES.md` is ticked.
 - [ ] The final commit is pushed before 10:00 AM. Judges see the repository as of the deadline.
+- [ ] GitHub's default branch is set to `development` (Settings → General → Default branch). It
+      is still `planning-stage`, which has no app code, so judges would miss this README.
 - [ ] The repository is public. Open it in a private browser window to check.
-- [ ] The GitHub default branch is still `planning-stage`, which has no app code. Set the default
-      branch to `development` (or merge `development` into it), so judges land on this README.
+- [ ] The demo phone is ready: the AI models are downloaded before the demo (☰ → AI setup says
+      **AI is ready**), notifications are allowed, and "Alarms & reminders" is allowed for the app
+      (Android 14 and later).
 - [ ] The demo video is posted on X or LinkedIn, tags Devin / Cognition and includes
       #AppBuildersPH.
 - [ ] Team name and member names match the official list at appbuildersph.com/hackathon.
@@ -27,16 +35,16 @@ Pinsan AI
 
 ### Short description
 
-Under 280 characters:
+Under 280 characters (278):
 
-> Pinsan AI is a private assistant for notes, tasks and reminders, built for Filipino students and
-> young workers with unreliable mobile data. Its AI runs on the phone, so it works in airplane
-> mode, needs no account, and your notes never leave the device.
+> Pinsan AI is a private assistant for tasks, reminders and a journal, for Filipino students and
+> young workers with unreliable mobile data. You talk to Pinsan, a 3D mascot. His AI runs on the
+> phone, so he works in airplane mode, needs no account and keeps your data on the device.
 
 One-line variant:
 
-> A private notes, tasks and reminders assistant whose AI runs on your phone, so it works with no
-> signal and no account.
+> Talk to Pinsan, a 3D mascot whose AI runs on your phone: tasks, reminders and a journal that
+> work with no signal and no account.
 
 ### Team members
 
@@ -64,17 +72,26 @@ https://github.com/Lampzzz/Wagmagpinsantayo/tree/development
 
 > All of the AI and all of the data stay on the phone.
 >
-> - Text AI: LFM2.5 1.2B through React Native ExecuTorch. It drafts voice notes and turns free-form
->   Assistant requests into actions. It will also power Summarize and Extract Tasks (in progress).
-> - Speech to text: Whisper base.en, with the FSMN voice-activity model, through React Native
->   ExecuTorch. Used for voice notes and voice requests.
-> - Spoken replies: the phone's own text-to-speech voice.
+> - Talking to Pinsan: on Home you tap the mic or type. Speech to text is Whisper base.en, with
+>   the FSMN voice-activity model, through React Native ExecuTorch. Pinsan answers in a speech
+>   bubble on screen.
+> - Text AI: LFM2.5 1.2B through React Native ExecuTorch. It drafts voice notes, summarizes notes,
+>   finds the to-dos in a note (Extract Tasks), and turns free-form requests into proposed
+>   actions.
+> - Fixed rules in code, with unit tests, handle the common requests without the model: Smart
+>   Quick Add ("Pay electric bill tomorrow 5pm" becomes a task and a reminder), every-day
+>   reminders ("take my medicine every day at 8 AM"), journal entries ("write in my journal: …")
+>   and calls for help ("call emergency").
 > - Dates and times: our own parser, in code, with unit tests. The AI never works out a date.
-> - Notes, tasks and reminders: SQLite on the phone. Reminder alerts are local notifications.
+> - Notes and the journal, tasks, reminders and the conversation history: SQLite on the phone.
+>   Reminder alerts are local notifications, and every-day reminders use the phone's daily alert.
+> - Emergency: the app asks first, then opens the phone's dialer with 911 filled in. It never
+>   dials by itself and needs no phone permission.
 > - The 3D mascot and island are drawn on the phone. Fonts are bundled.
 >
-> Only one model is in memory at a time. Notes, tasks, reminders and the rule-based Assistant work
-> even before the AI download. After the download, everything works in airplane mode.
+> Only one model is in memory at a time. Notes, the journal, tasks, reminders, Quick Add,
+> every-day reminders, the emergency call and typed requests the rules know work even before the
+> AI download. After the download, everything works in airplane mode.
 
 ### What requires internet
 
@@ -89,6 +106,11 @@ https://github.com/Lampzzz/Wagmagpinsantayo/tree/development
 >
 > No account, no backend and no cloud AI. After the download the app works in airplane mode.
 > (Developers also need internet for npm install and the first native build.)
+
+[DECIDE: turn off with setTelemetryEnabled(false)?] If the team turns the statistics off before
+the freeze, replace the second paragraph above with "The library's anonymous download statistics
+are switched off." and update the same lines in `README.md` and "APIs and cloud services" below.
+Delete this note before submitting.
 
 ## The disclosures
 
@@ -105,19 +127,21 @@ https://github.com/Lampzzz/Wagmagpinsantayo/tree/development
 >   find speech in the live microphone stream
 >   (huggingface.co/software-mansion/react-native-executorch-fsmn-vad).
 >
-> All three are pre-trained and unmodified. They download once and run on the phone. Spoken
-> replies use the phone's built-in text-to-speech, not a model of ours.
+> All three are pre-trained and unmodified. They download once and run on the phone. Pinsan's
+> replies are shown on screen, not read aloud; the code to read them with the phone's built-in
+> text-to-speech is there but switched off.
 
 ### Technologies and frameworks
 
 > Expo SDK 57, React Native 0.86, React 19.2, TypeScript, Expo Router, Expo development build
 > (expo-dev-client). On-device AI: React Native ExecuTorch 0.10.5 (Software Mansion), built on
-> ExecuTorch. Data and device: expo-sqlite, expo-file-system, expo-notifications, expo-speech,
-> react-native-audio-api. 3D: three.js, React Three Fiber, expo-gl, expo-linear-gradient. UI:
-> Reanimated, React Native Gesture Handler, React Native Keyboard Controller, React Native
-> Screens, Safe Area Context, expo-symbols, Zustand, expo-font with @expo-google-fonts (Fredoka,
-> Nunito). Tooling: Jest (jest-expo), ESLint, Prettier, and Python with Pillow and NumPy for the
-> island bake script.
+> ExecuTorch. Data and device: expo-sqlite, expo-file-system, expo-notifications, expo-speech
+> (installed, switched off for now), react-native-audio-api, and React Native's Linking for the
+> dialer. 3D: three.js, React Three Fiber, expo-gl, expo-linear-gradient. UI: Reanimated, React
+> Native Gesture Handler, React Native Keyboard Controller, React Native Screens, Safe Area
+> Context, expo-symbols, Zustand, expo-font with @expo-google-fonts (Fredoka, Nunito). Tooling:
+> Jest (jest-expo), ESLint, Prettier, and Python with Pillow and NumPy for the island bake
+> script.
 
 ### APIs and cloud services
 
@@ -126,6 +150,9 @@ https://github.com/Lampzzz/Wagmagpinsantayo/tree/development
 > - Hugging Face: hosts the model files for the one-time download.
 > - Software Mansion download statistics: built into react-native-executorch and on by default.
 >   Sent only while models download. No user content.
+> - Android backup: left at Android's default (on). If the user has Google backup turned on,
+>   Android can include the app's data (notes, tasks, reminders, conversation history) in it.
+>   We haven't turned this off.
 > - Development only: npm, GitHub (react-native-executorch downloads its prebuilt native libraries
 >   during npm install) and the Android build tools' package repositories. eas.json is in the
 >   repository, but we built locally and did not use EAS.
@@ -167,17 +194,19 @@ https://github.com/Lampzzz/Wagmagpinsantayo/tree/development
 
 ### Why does this product benefit from running AI locally?
 
-> Pinsan AI handles personal things: your notes, your plans, your reminders and your voice.
-> Running the AI on the phone changes four things for our users, students and young working
-> Filipinos with unreliable mobile data:
+> Pinsan AI handles personal things: your plans, your reminders, your journal, your voice, and
+> everything you say to Pinsan. Running the AI on the phone changes four things for our users,
+> students and young working Filipinos with unreliable mobile data:
 >
-> 1. **Private.** Notes, plans and voice recordings never leave the phone. There is no server to
->    send them to.
-> 2. **Works with no signal.** The assistant works in airplane mode, on the commute and in class.
->    A cloud assistant stops working when the signal drops.
+> 1. **Private.** Journal entries, plans, voice recordings and the conversation history never
+>    leave the phone. There is no server to send them to, and the history can be cleared from
+>    the phone.
+> 2. **Works with no signal.** Pinsan works in airplane mode, on the commute and in class. A
+>    cloud assistant stops working when the signal drops.
 > 3. **No per-request cost.** No cloud AI bill for us, and no mobile data spent per request for
 >    the user. The only download is the one-time model setup.
-> 4. **No account.** Open the app and use it. Nothing to sign up for.
+> 4. **No account.** Open the app and talk to Pinsan. Nothing to sign up for.
 >
-> The AI is the core of the app: it turns spoken and typed words into notes, tasks and reminders.
-> Running it on the phone is what keeps that private, and working when there is no signal.
+> The AI is the core of the app: it turns spoken and typed words into tasks, reminders and
+> journal entries. Running it on the phone is what keeps that private, and working when there is
+> no signal.

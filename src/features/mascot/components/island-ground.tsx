@@ -1,5 +1,6 @@
 import { useLoader } from '@react-three/fiber/native';
 import { Asset } from 'expo-asset';
+import { File, Paths } from 'expo-file-system';
 import {
   Color,
   ExtrudeGeometry,
@@ -18,7 +19,8 @@ import { lightFacing } from '../scene/lighting';
 // The walkable top: the island outline extruded into a thin grass slab, with the ground
 // texture baked from the top-down map on its top face.
 
-const GROUND_URI = Asset.fromModule(require('../../../../assets/scene/island-ground.jpg')).uri;
+const GROUND_ASSET = Asset.fromModule(require('../../../../assets/scene/island-ground.jpg'));
+const GROUND_URI = GROUND_ASSET.uri;
 const LIP = 0.3;
 
 const GEOMETRY = (() => {
@@ -51,10 +53,28 @@ function Slab({ top }: { top: Material }) {
 
 const groundMaterials = new WeakMap<Texture, MeshBasicMaterial>();
 
+/**
+ * R3F's native loader leaves the image in the cache folder, and three reads that file again
+ * whenever Home's canvas is rebuilt. Android empties the cache when storage runs low, and the
+ * ground then drew black, so point the texture at a copy in the documents folder.
+ */
+function keepImageFile(texture: Texture) {
+  const data = (texture.image as { data?: { localUri?: string } } | null)?.data;
+  if (!data?.localUri?.startsWith('file:')) return;
+  try {
+    const kept = new File(Paths.document, `island-ground-${GROUND_ASSET.hash ?? 'map'}.jpg`);
+    if (!kept.exists) new File(data.localUri).copySync(kept);
+    data.localUri = kept.uri;
+  } catch {
+    // The cache copy still works until Android clears the cache.
+  }
+}
+
 /** Map the texture so it lines up with world coordinates, once per loaded texture. */
 function groundMaterial(texture: Texture) {
   let material = groundMaterials.get(texture);
   if (!material) {
+    keepImageFile(texture);
     const { textureHalfSize: half, textureCenter } = ISLAND_MAP;
     texture.colorSpace = SRGBColorSpace;
     texture.repeat.set(1 / (2 * half), 1 / (2 * half));

@@ -1,0 +1,17 @@
+# dependencies
+node_modules/
+
+# Expo / build output
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# generated native folders
+ios/
+android/
+
+# misc
+coverage/
+package-lock.json
+*.lock

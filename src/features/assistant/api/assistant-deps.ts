@@ -1,4 +1,5 @@
 import type { AiAvailability } from '@/features/ai-setup';
+import { createNote } from '@/features/notes';
 import {
   createReminder,
   deleteReminder,
@@ -8,8 +9,9 @@ import {
 } from '@/features/reminders';
 import { createTask, deleteTask, listTasks, setTaskDone, updateTask } from '@/features/tasks';
 import { generateJson } from '@/lib/ai';
+import { callEmergency } from '@/lib/phone';
 
-import type { Action, AssistantDeps, Command, Outcome, Snapshot } from '../types';
+import type { AssistantDeps, Command, DataAction, Outcome, Snapshot } from '../types';
 import { isModelReplyFor, LLM_SYSTEM_PROMPT, toCommands } from './llm-commands';
 
 const MODEL_GENERATION = { temperature: 0.2, maxNewTokens: 200 };
@@ -23,6 +25,7 @@ export function createAssistantDeps(availability: AiAvailability): AssistantDeps
     canSetUpModel: availability === 'needs-setup',
     loadSnapshot,
     execute,
+    callEmergency,
     now: Date.now,
   };
 }
@@ -46,7 +49,7 @@ async function loadSnapshot(): Promise<Snapshot> {
   return { tasks, reminders };
 }
 
-async function execute(action: Action): Promise<Outcome> {
+async function execute(action: DataAction): Promise<Outcome> {
   switch (action.kind) {
     case 'create-task':
       return { kind: 'task-saved', task: await createTask(action.task) };
@@ -73,5 +76,7 @@ async function execute(action: Action): Promise<Outcome> {
       const { alertCleared } = await deleteReminder(action.reminder.id);
       return { kind: 'reminder-deleted', alertCleared };
     }
+    case 'create-note':
+      return { kind: 'note-saved', note: await createNote(action.note) };
   }
 }

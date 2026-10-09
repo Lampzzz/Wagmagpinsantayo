@@ -1,6 +1,6 @@
-import { Alert, Linking } from 'react-native';
+import { Alert } from 'react-native';
 
-const EMERGENCY_NUMBER = '911';
+import { callEmergency, EMERGENCY_NUMBER } from '@/lib/phone';
 
 /**
  * Asks first, then opens the phone's dialer with 911 filled in. The person still presses
@@ -18,9 +18,8 @@ export function confirmEmergencyCall() {
   );
 }
 
-// TODO(W11): delete this and call `callEmergency()` from `@/lib/phone` once that branch merges.
-function openEmergencyDialer() {
-  Linking.openURL(`tel:${EMERGENCY_NUMBER}`).catch(() => {
+async function openEmergencyDialer() {
+  if (!(await callEmergency())) {
     Alert.alert("Couldn't open the dialer", `Please dial ${EMERGENCY_NUMBER} yourself.`);
-  });
+  }
 }

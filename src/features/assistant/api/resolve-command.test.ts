@@ -36,6 +36,7 @@ function reminder(id: number, title: string, changes: Partial<Reminder> = {}): R
     id,
     title,
     scheduledAt: at(2026, 10, 9, 10),
+    repeat: null,
     status: 'scheduled',
     notificationId: `reminder-${id}`,
     taskId: null,

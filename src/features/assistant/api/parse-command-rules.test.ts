@@ -195,3 +195,116 @@ describe('parseCommandRules', () => {
     expect(parseCommandRules(text)).toBeNull();
   });
 });
+
+describe('parseCommandRules: said the way people talk', () => {
+  const agenda = (when?: string) => [
+    { kind: 'list-tasks', status: 'pending', ...(when ? { when } : {}) },
+    { kind: 'list-reminders', status: 'upcoming', ...(when ? { when } : {}) },
+  ];
+
+  it.each([
+    // Other ways to ask for a reminder.
+    [
+      "Don't let me forget to bring my ID tomorrow",
+      [{ kind: 'add-reminder', title: 'bring my ID', when: 'tomorrow' }],
+    ],
+    [
+      "Please don't let me forget about Ana's birthday on Friday",
+      [{ kind: 'add-reminder', title: "Ana's birthday", when: 'on Friday' }],
+    ],
+    [
+      'Help me remember to water the plants tonight',
+      [{ kind: 'add-reminder', title: 'water the plants', when: 'tonight' }],
+    ],
+    [
+      'Make sure I call Lola on Sunday',
+      [{ kind: 'add-reminder', title: 'call Lola', when: 'on Sunday' }],
+    ],
+    [
+      'Ping me in an hour about the laundry',
+      [{ kind: 'add-reminder', title: 'the laundry', when: 'in an hour' }],
+    ],
+    [
+      'Tell me to stretch in an hour',
+      [{ kind: 'add-reminder', title: 'stretch', when: 'in an hour' }],
+    ],
+    ['Wake me up at 6 AM', [{ kind: 'add-reminder', title: 'Wake up', when: 'at 6 AM' }]],
+    ['Wake me up', [{ kind: 'add-reminder', title: 'Wake up' }]],
+    [
+      'Set an alarm for 5:30 tomorrow morning',
+      [{ kind: 'add-reminder', title: 'Alarm', when: 'for 5:30 tomorrow morning' }],
+    ],
+    [
+      'Set a timer for 20 minutes',
+      [{ kind: 'add-reminder', title: 'Timer', when: 'in 20 minutes' }],
+    ],
+    // The time first.
+    [
+      'Tomorrow at 9, remind me to call the bank',
+      [{ kind: 'add-reminder', title: 'call the bank', when: 'Tomorrow at 9' }],
+    ],
+    [
+      'In 10 minutes, remind me to check the rice',
+      [{ kind: 'add-reminder', title: 'check the rice', when: 'In 10 minutes' }],
+    ],
+    // Polite words.
+    ["Let's add laundry to my tasks", [{ kind: 'add-task', title: 'laundry' }]],
+    [
+      'Can we move the meeting to 3 PM?',
+      [{ kind: 'edit-task', target: 'meeting', impliedEntity: true, when: '3 PM' }],
+    ],
+    [
+      'Actually, make the report due on Thursday',
+      [{ kind: 'edit-task', target: 'report', impliedEntity: true, when: 'on Thursday' }],
+    ],
+    // A shopping list.
+    ['Add milk and eggs to my shopping list', [{ kind: 'add-task', title: 'buy milk and eggs' }]],
+    // Questions about the day.
+    ['What do I have today?', agenda('today')],
+    ["What's on my schedule tomorrow?", agenda('tomorrow')],
+    ['Do I have anything due this week?', agenda('this week')],
+    ["What's coming up?", agenda()],
+    ["What's next on my list?", agenda()],
+    [
+      'Did I miss anything?',
+      [
+        { kind: 'list-tasks', status: 'overdue' },
+        { kind: 'list-reminders', status: 'past-due' },
+      ],
+    ],
+    ['What do I need to do today?', [{ kind: 'list-tasks', status: 'pending', when: 'today' }]],
+    ['Show me what I have to do', [{ kind: 'list-tasks', status: 'pending' }]],
+    // News that it's done, or not needed.
+    [
+      'I already paid the electric bill',
+      [{ kind: 'complete-task', target: 'electric bill', impliedEntity: true }],
+    ],
+    ['Done with the laundry', [{ kind: 'complete-task', target: 'laundry', impliedEntity: true }]],
+    [
+      'I finished my homework, check it off',
+      [{ kind: 'complete-task', target: 'homework', impliedEntity: true }],
+    ],
+    ['The report is done', [{ kind: 'complete-task', target: 'report', impliedEntity: true }]],
+    [
+      'Never mind the dentist reminder',
+      [{ kind: 'cancel-reminder', target: 'dentist', impliedEntity: false }],
+    ],
+    [
+      "I don't need the milk task anymore",
+      [{ kind: 'delete-task', target: 'milk', impliedEntity: false }],
+    ],
+  ])('reads %p', (text, expected) => {
+    expect(parseCommandRules(text)).toEqual(expected);
+  });
+
+  it.each([
+    'I just made dinner',
+    "I'm done",
+    'My sister is finally done with college at last',
+    'Is the report done?',
+    'Tomorrow is my birthday',
+    'Make sure the door is locked',
+  ])('leaves %p alone', (text) => {
+    expect(parseCommandRules(text)).toBeNull();
+  });
+});

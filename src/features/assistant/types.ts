@@ -172,10 +172,16 @@ export type AssistantReply = {
   isError: boolean;
 };
 
+/**
+ * What the model read in a message: the requests in it, or, when there are none because
+ * the user was only chatting, Pinsan's answer.
+ */
+export type ModelReading = { commands: Command[]; reply: string | null };
+
 /** The outside world the assistant works through. Tests pass in fakes. */
 export type AssistantDeps = {
   /** The on-device model, or null when it isn't set up or can't run on this phone. */
-  interpretWithModel: ((text: string) => Promise<Command[]>) | null;
+  interpretWithModel: ((text: string) => Promise<ModelReading>) | null;
   /** True when the model isn't downloaded yet but this phone could run it. */
   canSetUpModel?: boolean;
   loadSnapshot: () => Promise<Snapshot>;

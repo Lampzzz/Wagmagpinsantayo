@@ -1,6 +1,9 @@
-import { isModelReplyFor, toCommands } from './llm-commands';
+import { isModelReplyFor, toReading } from './llm-commands';
 
-describe('toCommands', () => {
+const commandsOf = (reply: unknown, utterance: string) =>
+  toReading(reply, utterance)?.commands ?? null;
+
+describe('toReading', () => {
   it('maps actions to commands, including an empty title that means "it"', () => {
     const utterance = 'I need to pick up the dry cleaning on Friday, and ping me at 6 about it';
     const reply = {
@@ -9,21 +12,24 @@ describe('toCommands', () => {
         { do: 'add_reminder', title: '', when: 'at 6' },
       ],
     };
-    expect(toCommands(reply, utterance)).toEqual([
-      { kind: 'add-task', title: 'pick up the dry cleaning', when: 'on Friday' },
-      { kind: 'add-reminder', title: '', when: 'at 6' },
-    ]);
+    expect(toReading(reply, utterance)).toEqual({
+      commands: [
+        { kind: 'add-task', title: 'pick up the dry cleaning', when: 'on Friday' },
+        { kind: 'add-reminder', title: '', when: 'at 6' },
+      ],
+      reply: null,
+    });
   });
 
   it('marks the kind as implied unless the user said "task" or "reminder"', () => {
     expect(
-      toCommands(
+      commandsOf(
         { actions: [{ do: 'complete_task', target: 'slides' }] },
         "I'm done with the slides",
       ),
     ).toEqual([{ kind: 'complete-task', target: 'slides', impliedEntity: true }]);
     expect(
-      toCommands(
+      commandsOf(
         { actions: [{ do: 'edit_reminder', target: 'dentist', when: 'Monday at 9' }] },
         'Push the dentist reminder to Monday at 9',
       ),
@@ -34,7 +40,7 @@ describe('toCommands', () => {
 
   it('treats null fields as missing and maps priorities', () => {
     expect(
-      toCommands(
+      commandsOf(
         { actions: [{ do: 'add_task', title: 'file taxes', when: null, priority: 'urgent' }] },
         'file taxes, it is urgent',
       ),
@@ -42,11 +48,11 @@ describe('toCommands', () => {
   });
 
   it('reads list filters from the sentence', () => {
-    expect(toCommands({ actions: [{ do: 'list_tasks' }] }, 'What have I finished?')).toEqual([
+    expect(commandsOf({ actions: [{ do: 'list_tasks' }] }, 'What have I finished?')).toEqual([
       { kind: 'list-tasks', status: 'done' },
     ]);
     expect(
-      toCommands(
+      commandsOf(
         { actions: [{ do: 'list_reminders', when: 'tomorrow' }] },
         'anything for tomorrow?',
       ),
@@ -55,24 +61,109 @@ describe('toCommands', () => {
 
   it('accepts number words the user said as digits', () => {
     expect(
-      toCommands(
+      commandsOf(
         { actions: [{ do: 'add_reminder', title: 'stretch', when: 'in 5 minutes' }] },
         'ping me in five minutes to stretch',
       ),
     ).toEqual([{ kind: 'add-reminder', title: 'stretch', when: 'in 5 minutes' }]);
   });
 
-  it('returns no commands when the request is not about tasks or reminders', () => {
-    expect(toCommands({ actions: [] }, "What's the weather like?")).toEqual([]);
+  it("uses the user's own time words when the model rewords them, or none", () => {
+    expect(
+      commandsOf(
+        { actions: [{ do: 'add_reminder', title: 'call Mom', when: '7 PM' }] },
+        'remind me to call Mom at 7 tonight',
+      ),
+    ).toEqual([{ kind: 'add-reminder', title: 'call Mom', when: 'at 7 tonight' }]);
+    // Pinsan then asks when.
+    expect(
+      commandsOf(
+        { actions: [{ do: 'add_reminder', title: 'stretch', when: 'tomorrow at 9' }] },
+        'remind me to stretch',
+      ),
+    ).toEqual([{ kind: 'add-reminder', title: 'stretch' }]);
+  });
+
+  it('keeps the words of an item the user said, and drops what they never gave', () => {
+    expect(
+      commandsOf(
+        { actions: [{ do: 'delete_task', target: 'buy milk' }] },
+        "I don't need the milk task anymore",
+      ),
+    ).toEqual([{ kind: 'delete-task', target: 'milk', impliedEntity: false }]);
+    expect(
+      commandsOf(
+        {
+          actions: [
+            {
+              do: 'add_task',
+              title: 'submit my report',
+              when: 'Friday',
+              priority: 'high',
+              notes: "Don't forget!",
+            },
+          ],
+        },
+        'I need to submit my report by Friday',
+      ),
+    ).toEqual([{ kind: 'add-task', title: 'submit my report', when: 'Friday' }]);
+  });
+
+  it("reads Pinsan's answer when the user is only chatting", () => {
+    expect(
+      toReading(
+        { actions: [{ do: 'say', text: "I'm sorry to hear that. Take it easy tonight." }] },
+        'I had a rough day',
+      ),
+    ).toEqual({ commands: [], reply: "I'm sorry to hear that. Take it easy tonight." });
+    expect(toReading({ actions: [] }, "What's the weather like?")).toEqual({
+      commands: [],
+      reply: null,
+    });
+  });
+
+  it.each([
+    ['claims something was saved', "Sure! I've added that to your list."],
+    ['says a reminder is set', 'Your reminder is set for 7.'],
+    ['is too long for the bubble', 'Okay. '.repeat(40)],
+    ['is not text', 42],
+  ])('drops a chat answer that %s', (_, text) => {
+    expect(toReading({ actions: [{ do: 'say', text }] }, 'hmm')).toEqual({
+      commands: [],
+      reply: null,
+    });
+  });
+
+  it("drops a chat answer that only says the user's words back", () => {
+    expect(
+      toReading(
+        { actions: [{ do: 'say', text: 'The weather is nice today.' }] },
+        'The weather is nice today.',
+      ),
+    ).toEqual({ commands: [], reply: null });
+  });
+
+  it('ignores a chat answer next to a request', () => {
+    expect(
+      toReading(
+        {
+          actions: [
+            { do: 'add_task', title: 'buy bread' },
+            { do: 'say', text: 'Got it!' },
+          ],
+        },
+        'buy bread',
+      ),
+    ).toEqual({ commands: [{ kind: 'add-task', title: 'buy bread' }], reply: null });
   });
 
   it.each([
     ['an unknown action', { actions: [{ do: 'order_pizza' }] }, 'order a pizza'],
     ['a task without a title', { actions: [{ do: 'add_task' }] }, 'add a task'],
     [
-      'a time the user never said',
-      { actions: [{ do: 'add_reminder', title: 'stretch', when: 'tomorrow at 9' }] },
-      'remind me to stretch',
+      'a title the user never said, copied from an example',
+      { actions: [{ do: 'add_task', title: 'the car wash', when: 'at 4' }] },
+      'Salamat!',
     ],
     [
       'an item the user never named',
@@ -93,7 +184,7 @@ describe('toCommands', () => {
       'show my tasks and fly away',
     ],
   ])('rejects %s', (_, reply, utterance) => {
-    expect(toCommands(reply, utterance)).toBeNull();
+    expect(toReading(reply, utterance)).toBeNull();
   });
 });
 
@@ -103,8 +194,6 @@ describe('isModelReplyFor', () => {
     expect(
       isValid({ actions: [{ do: 'add_reminder', title: 'stretch', when: 'in 5 minutes' }] }),
     ).toBe(true);
-    expect(isValid({ actions: [{ do: 'add_reminder', title: 'stretch', when: 'at noon' }] })).toBe(
-      false,
-    );
+    expect(isValid({ actions: [{ do: 'add_reminder', title: 'go for a run' }] })).toBe(false);
   });
 });

@@ -11,8 +11,8 @@ import { createTask, deleteTask, listTasks, setTaskDone, updateTask } from '@/fe
 import { generateJson } from '@/lib/ai';
 import { callEmergency } from '@/lib/phone';
 
-import type { AssistantDeps, Command, DataAction, Outcome, Snapshot } from '../types';
-import { isModelReplyFor, LLM_SYSTEM_PROMPT, toCommands } from './llm-commands';
+import type { AssistantDeps, DataAction, ModelReading, Outcome, Snapshot } from '../types';
+import { isModelReplyFor, LLM_SYSTEM_PROMPT, toReading } from './llm-commands';
 
 const MODEL_GENERATION = { temperature: 0.2, maxNewTokens: 200 };
 // Every request loads the model first, which takes a few seconds on most phones.
@@ -31,7 +31,7 @@ export function createAssistantDeps(availability: AiAvailability): AssistantDeps
 }
 
 /** Asks the on-device model what the user wants. Throws `AiTaskError` when it can't tell. */
-async function interpretWithModel(text: string): Promise<Command[]> {
+async function interpretWithModel(text: string): Promise<ModelReading> {
   const reply = await generateJson(
     {
       system: LLM_SYSTEM_PROMPT,
@@ -41,7 +41,7 @@ async function interpretWithModel(text: string): Promise<Command[]> {
     },
     isModelReplyFor(text),
   );
-  return toCommands(reply, text) ?? [];
+  return toReading(reply, text) ?? { commands: [], reply: null };
 }
 
 async function loadSnapshot(): Promise<Snapshot> {

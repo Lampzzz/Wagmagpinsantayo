@@ -7,8 +7,9 @@ type TargetKind = Extract<Command, { target: string }>['kind'];
 type SimpleTargetKind = Exclude<TargetKind, 'edit-task' | 'edit-reminder'>;
 
 const POLITE_START =
-  /^(?:(?:hey|hi|hello|ok|okay|so|please|pls|can you|could you|would you|will you|i want you to|i need you to|i'd like you to|i would like you to)\b[\s,]*)+/i;
-const POLITE_END = /(?:[\s,]+(?:please|thanks|thank you|for me))+$/i;
+  /^(?:(?:hey|hi|hello|yo|ok|okay|alright|so|also|actually|just|please|pls|can you|could you|would you|will you|can we|could we|let'?s|would you mind|do me a favou?r and|i want you to|i need you to|i'd like you to|i would like you to)\b[\s,]*)+/i;
+const POLITE_END =
+  /(?:[\s,]+(?:please|thanks|thank you|for me|instead|real quick|if you can|if you could|okay|ok))+$/i;
 
 // Words that start a new request in a sentence like "…, then remind me to …".
 const ANY_OPENER =
@@ -23,13 +24,22 @@ const CLAUSE_BREAK = new RegExp(
 );
 
 const REMINDER_OPENER =
-  /^(?:remind me|set (?:me )?(?:a |an )?reminder|(?:add|create|make) (?:a |an )?(?:new )?reminder|alert me|notify me)(?:[\s,:]+(.*))?$/i;
+  /^(?:remind me|set (?:me )?(?:a |an )?reminder|(?:add|create|make) (?:a |an )?(?:new )?reminder|alert me|notify me|ping me|nudge me|tell me(?= to\b))(?:[\s,:]+(.*))?$/i;
 const SUBJECT = /^(?:to|that|about|of)\s+(.+)$/i;
+// Other ways to ask for a reminder, read as "remind me": "Don't let me forget my ID".
+// Group 1 is set when "make sure I" already says "remember" or "don't forget".
+const REMIND_ME_WAYS =
+  /^(?:(?:don'?t|do not) let me forget|help me (?:to )?remember|make sure (?:that )?i(?!')(?: (remember|don'?t forget))?)\b[\s,]*(.*)$/i;
+const MAKE_SURE = /^make sure/i;
+// "Wake me up at 6", "Set an alarm for 5:30 tomorrow", "Set a timer for 10 minutes".
+const WAKE_ME = /^wake me(?: up)?\b[\s,]*(.*)$/i;
+const ALARM = /^(?:set|start) (?:an?|my|the) (alarm|timer)(?: clock)?\b[\s,]*(.*)$/i;
 
 const TASK_OPENER =
   /^(?:create|add|make|new|set up|put|start)\s+(?:(?:a|an|another)\s+)?(?:new\s+)?(?:(high|low|urgent|important)[\s-]priority\s+)?(?:task|to-?do)\b[\s,:-]*(?:(?:to|for|called|named|titled|saying)\b[\s:]*)?(.*)$/i;
 const ADD_TO_LIST =
-  /^(?:add|put)\s+(.+?)\s+(?:to|on)\s+(?:my\s+)?(?:tasks|task list|to-?do list|to-?dos|list)$/i;
+  /^(?:add|put)\s+(.+?)\s+(?:to|on)\s+(?:my\s+|the\s+)?(?:tasks|task list|to-?do list|to-?dos|(shopping|grocery|groceries) list|list)$/i;
+const BUYING = /^(?:buy|get|pick up|grab|order)\b/i;
 const TRAILING_PRIORITY =
   /[\s,]+(?:with\s+|as\s+)?(?:a\s+)?(high|low|normal|medium|top|urgent)\s+priority$|[\s,]+(?:it's\s+|it is\s+)?(urgent|important)$/i;
 
@@ -105,6 +115,34 @@ const LIST_WORDS = new Set([
   'which',
 ]);
 
+// "What do I have today?", "What's on my schedule tomorrow?", "Anything due this week?":
+// tasks and reminders both. The rest of the sentence may only say which day.
+const AGENDA =
+  /^(?:what (?:do|else do) i have(?: (?:going on|planned|scheduled|coming up))?|what(?:'s| is) (?:on )?(?:my|the) (?:schedule|agenda|plate|calendar|plans?)|what(?:'s| is) (?:planned|scheduled|coming up|happening|going on|next|up next)|(?:do i have|is there|have i got) (?:anything|something)(?: (?:due|planned|scheduled|coming up|going on))?|anything (?:due|planned|scheduled|coming up|going on)|how(?:'s| is| does) my (?:day|week|schedule)(?: look(?:ing)?)?(?: like)?|what(?:'s| does) my (?:day|week|schedule) look(?:ing)? like|am i free)\b\s*(.*)$/i;
+// "What do I need to do today?", "Show me what I have to do": the tasks.
+const TO_DO =
+  /^(?:what (?:do|else do|should) i (?:still )?(?:need|have) to do|(?:show|tell) me what i (?:still )?(?:need|have) to do|what(?:'s| is) left(?: to do)?)\b\s*(.*)$/i;
+const MISSED =
+  /^(?:did i (?:miss|forget)|have i (?:missed|forgotten)) (?:anything|something)$|^anything (?:i missed|overdue)$/i;
+// "on my list", "in my schedule": they say nothing about which items.
+const ON_MY_LIST =
+  /^(?:on|in|for) (?:my|the) (?:list|to-?do list|schedule|agenda|calendar|plate)\b\s*/i;
+
+// News that it's done: "I'm done with the laundry", "The report is done", "I finished my
+// homework, check it off", "I already paid the electric bill".
+const DONE_WITH =
+  /^(?:(?:i'm|i am|im|we're|we are)\s+)?(?:all\s+|finally\s+)?(?:done|finished|through)\s+with\s+(.+)$/i;
+const IS_DONE =
+  /^(.+?)\s+(?:is|are)\s+(?:all\s+|now\s+|finally\s+)?(?:done|finished|complete|completed|taken care of)$/i;
+const I_FINISHED =
+  /^i(?:'ve|\s+have)?\s+(?:already\s+|just\s+|finally\s+)?(?:finished|completed)\s+(.+?)(?:[\s,]+(?:check|tick|cross|mark)\s+it\s+off)?$/i;
+// Only verbs that finish a to-do: "I just made dinner" is news, not a task done.
+const ALREADY_DID =
+  /^i(?:'ve|\s+have)?\s+(?:already|just|finally)\s+(?:paid|called|sent|submitted|emailed|texted|booked|returned|mailed|renewed|filed|deposited|transferred|signed|ordered|bought|fixed|cleaned|washed|watered|fed|packed|picked up|dropped off)\s+(.+)$/i;
+// "Never mind the dentist reminder", "I don't need the milk task anymore".
+const NEVER_MIND = /^(?:never ?mind|forget about|scratch)\s+(.+)$/i;
+const NOT_NEEDED = /^i\s+(?:don'?t|do not|no longer)\s+need\s+(.+?)(?:\s+any ?more)?$/i;
+
 const MARK_NOT_DONE =
   /^(?:mark|set)\s+(.+?)\s+(?:as\s+)?(?:not\s+(?:done|finished|complete|completed)|undone|incomplete|unfinished|pending|open)$/i;
 const REOPEN = /^(?:reopen|uncheck|untick)\s+(.+)$/i;
@@ -147,6 +185,10 @@ const LEADING_FILLER =
 export function parseCommandRules(text: string): Command[] | null {
   const sentence = tidySentence(text);
   if (!sentence) return null;
+  const agenda = parseAgenda(sentence);
+  if (agenda) return agenda;
+  const timeFirst = parseTimeFirst(sentence);
+  if (timeFirst) return [timeFirst];
 
   const commands: Command[] = [];
   for (const clause of sentence.split(CLAUSE_BREAK)) {
@@ -188,8 +230,56 @@ function parseClause(clause: string): Command | null {
   );
 }
 
+// "What do I have today?" lists tasks and reminders both; "Did I miss anything?" what's late.
+function parseAgenda(sentence: string): Command[] | null {
+  if (MISSED.test(sentence)) {
+    return [
+      { kind: 'list-tasks', status: 'overdue' },
+      { kind: 'list-reminders', status: 'past-due' },
+    ];
+  }
+  const match = AGENDA.exec(sentence);
+  const day = match && readDay(match[1]);
+  if (!day) return null;
+  return [
+    { kind: 'list-tasks', status: 'pending', ...day },
+    { kind: 'list-reminders', status: 'upcoming', ...day },
+  ];
+}
+
+// The words after a question about the day: nothing, "today", "on my list for tomorrow".
+function readDay(rest: string): { when?: string } | null {
+  const words = rest.replace(ON_MY_LIST, '').trim();
+  if (!words) return {};
+  return parseWhen(words) ? { when: words } : null;
+}
+
+// "Tomorrow at 9, remind me to call the bank": the time comes before the request.
+function parseTimeFirst(sentence: string): Command | null {
+  const leading = splitLeadingWhen(sentence);
+  if (!leading) return null;
+  const rest = leading.rest.replace(/^[\s,;:-]+/, '');
+  const command = rest ? parseClause(rest) : null;
+  if (command?.kind !== 'add-reminder' && command?.kind !== 'add-task') return null;
+  const first = tidyWhen(leading.when);
+  const when = command.when ? `${first} ${command.when}` : first;
+  return parseWhen(when) ? { ...command, when } : null;
+}
+
 function parseAddReminder(clause: string): Command | null {
-  const match = REMINDER_OPENER.exec(clause);
+  const wake = WAKE_ME.exec(clause);
+  if (wake) return remindAt(wake[1], 'Wake up');
+  const alarm = ALARM.exec(clause);
+  if (alarm) {
+    const timer = alarm[1].toLowerCase() === 'timer';
+    // A timer "for 10 minutes" goes off in 10 minutes.
+    return remindAt(
+      timer ? alarm[2].replace(/^for\s+/i, 'in ') : alarm[2],
+      timer ? 'Timer' : 'Alarm',
+    );
+  }
+
+  const match = REMINDER_OPENER.exec(asRemindMe(clause));
   if (!match) return null;
   const rest = (match[1] ?? '').trim();
   if (!rest) return { kind: 'add-reminder', title: '' };
@@ -218,6 +308,25 @@ function parseAddReminder(clause: string): Command | null {
     : { kind: 'add-reminder', title: subject[1] };
 }
 
+// "Don't let me forget to call Ana" → "remind me to call Ana"; "…forget my ID" →
+// "remind me about my ID"; "Make sure I call Lola" → "remind me to call Lola".
+function asRemindMe(clause: string): string {
+  const match = REMIND_ME_WAYS.exec(clause);
+  if (!match) return clause;
+  const rest = match[2];
+  if (!rest || SUBJECT.test(rest) || splitLeadingWhen(rest)) return `remind me ${rest}`.trim();
+  const linking = MAKE_SURE.test(clause) && !match[1] ? 'to' : 'about';
+  return `remind me ${linking} ${rest}`;
+}
+
+// "Wake me up at 6", "Set an alarm for 6 to take my pills": a reminder at that time,
+// called `title` unless it says what it's for.
+function remindAt(rest: string, title: string): Command | null {
+  const command = parseAddReminder(`remind me ${rest}`.trim());
+  if (command?.kind !== 'add-reminder') return null;
+  return command.title ? command : { ...command, title };
+}
+
 // Speech-to-text punctuates pauses: "in 5 minutes," → "in 5 minutes".
 export function tidyWhen(when: string): string {
   return when.replace(/[,;:]+$/, '');
@@ -234,6 +343,8 @@ function parseAddTask(clause: string): Command | null {
     const listed = ADD_TO_LIST.exec(clause);
     if (!listed) return null;
     opened = listed[1].trim();
+    // On a shopping list, "milk and eggs" are things to buy.
+    if (listed[2] && !BUYING.test(opened)) opened = `buy ${opened}`;
   }
 
   const { rest, priority } = splitTrailingPriority(opened);
@@ -248,6 +359,9 @@ function parseAddTask(clause: string): Command | null {
 
 function parseList(clause: string): Command | null {
   if (SUMMARY.test(clause)) return { kind: 'list-tasks', status: 'pending', summary: true };
+  const toDo = TO_DO.exec(clause);
+  const toDoDay = toDo && readDay(toDo[1]);
+  if (toDoDay) return { kind: 'list-tasks', status: 'pending', ...toDoDay };
 
   const about = SEARCH_ABOUT.exec(clause);
   if (about) return search(entityFromNoun(about[1]), about[2]);
@@ -330,6 +444,14 @@ function parseStatusChange(clause: string): Command | null {
     const kinds = { task: 'complete-task', reminder: 'complete-reminder' } as const;
     return { kind: kinds[entityFromNoun(match[1])], target: cleanTarget(match[2]).target };
   }
+  match =
+    DONE_WITH.exec(clause) ??
+    I_FINISHED.exec(clause) ??
+    ALREADY_DID.exec(clause) ??
+    IS_DONE.exec(clause);
+  if (match) {
+    return targeted(match[1], { task: 'complete-task', reminder: 'complete-reminder' }, 'task');
+  }
 
   match = CANCEL.exec(clause);
   if (match) return targeted(match[1], { task: null, reminder: 'cancel-reminder' }, 'reminder');
@@ -340,8 +462,13 @@ function parseStatusChange(clause: string): Command | null {
 
 function parseDelete(clause: string): Command | null {
   const match = DELETE.exec(clause);
-  if (!match) return null;
-  return targeted(match[1], { task: 'delete-task', reminder: 'delete-reminder' }, 'task');
+  if (match) {
+    return targeted(match[1], { task: 'delete-task', reminder: 'delete-reminder' }, 'task');
+  }
+  // A task that isn't needed is deleted, once the user says yes; a reminder is called off.
+  const dropped = NEVER_MIND.exec(clause) ?? NOT_NEEDED.exec(clause);
+  if (!dropped) return null;
+  return targeted(dropped[1], { task: 'delete-task', reminder: 'cancel-reminder' }, 'task');
 }
 
 function parseEdit(clause: string): Command | null {

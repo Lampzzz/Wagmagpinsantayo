@@ -37,34 +37,46 @@ affirmations and quiz content, which are not our product.
 
 ## Pinsan, the mascot
 
-**Build it from three.js primitives, not a downloaded model.** It is original by
-construction, needs no asset pipeline, every part can be animated directly, and there's
-no third-party asset to disclose. A suggested starting shape, which the UI lead owns:
+**Built from three.js primitives, not a downloaded model.** It is original by
+construction, needs no asset pipeline, and every part can be animated directly.
+`components/pinsan.tsx` follows the AI-generated character sheets made during the
+hackathon:
 
-- Body: one squashed sphere (a bean or bun shape) in mango yellow or coral.
-- Face: two dark dot eyes, two blush circles. The eyes do most of the acting.
-- One small detail on top that we can animate (a leaf sprout or a single antenna).
-- About 5–10k triangles in total. `MeshToonMaterial` or `MeshStandardMaterial` with
-  `roughness: 1` for the clay look.
+- **Model sheet** (front, side, back, top-down with guide lines). The proportions come from
+  its guide lines: 1.7 units tall, the chin at 0.74, the head about as wide as it is tall.
+  - The head is a lathed onion shape that flows into a tapered curl hooking back and to
+    Pinsan's left.
+  - Cat ears stick out on the sides, with tall glossy eyes and an open "D" smile.
+  - Cream shirt with puffed sleeves under sage overalls: buttoned straps, a belly pocket,
+    shorts with rolled cuffs.
+  - Mitten hands with thumbs and boot-like feet.
+- **Detail sheet.** The painted look comes from its texture swatches:
+  `scene/brush-strokes.ts` paints short diagonal dabs in a few shades per material into a
+  small texture made in code.
+- **Expression sheet:** the five moods below.
+- **Walk sheet:** legs swing from the hips, arms swing against them, and the body dips and
+  waddles.
 
-The island is a flattened sphere with two or three bush spheres and the blob shadow (a
-transparent dark circle on a plane). The sky is an `expo-linear-gradient` behind the
-canvas, not a 3D sky. It tints by time of day: peach in the morning, blue during the day,
-indigo at night. That's a cheap effect that looks good.
+`<Pinsan mood="…" />` shows a fixed expression regardless of the shared mood. Use it to make
+the PNG snapshots for the 2D fallback.
+
+The sky is an `expo-linear-gradient` behind the canvas, not a 3D sky. It could tint by time
+of day: peach in the morning, blue during the day, indigo at night.
 
 ### Moods
 
 Each mood maps to an app state. All animation is procedural, inside `useFrame`.
 
-| Mood        | When                    | Animation                                                  |
-| ----------- | ----------------------- | ---------------------------------------------------------- |
-| `idle`      | Default                 | Slow bob, a blink every 3–5 s, slight sway                 |
-| `listening` | Quick Add input focused | Leans toward the input, eyes look down at it               |
-| `thinking`  | On-device LLM running   | Eyes look up and to the side, slow wobble, 2D "…" bubble   |
-| `done`      | Task or note saved      | Hop with squash and stretch, happy `^ ^` eyes, 2D confetti |
-| `oops`      | AI or parsing failed    | Head tilt, small 2D sweat drop                             |
+| Mood        | When                    | Face and pose                                                        |
+| ----------- | ----------------------- | -------------------------------------------------------------------- |
+| `idle`      | Default                 | Open smile, a blink every 3–5 s, slow bob; strolls around the island |
+| `listening` | Quick Add input focused | Raised brows, small closed smile, leans in; stops and faces you      |
+| `thinking`  | On-device LLM running   | One brow up, one down, wavy mouth, head turns and tilts              |
+| `done`      | Task or note saved      | Closed `^ ^` eyes, big smile, a hop with squash and stretch          |
+| `oops`      | AI or parsing failed    | Worried brows, small open frown, head tilt, a sweat drop             |
 
-The plan names `idle`, `thinking` and `done`; build those first.
+The plan names `idle`, `thinking` and `done`; build those first. `done` and `oops` are
+reactions: the store sets the mood back to `idle` after 3 seconds.
 
 ### The seam: `features/mascot`
 
@@ -125,9 +137,20 @@ The phone runs an LLM at the same time, so the 3D must stay cheap.
    (`useFocusEffect` from `expo-router`) or the app goes to the background (`AppState`).
 3. **Test the mascot during a real LLM call early, on the demo phone.** If generation slows
    down or frames stutter, freeze the 3D during `thinking` and show the 2D "…" bubble.
-4. Keep the budget at ≤ 10k triangles, ≤ 3 lights, no shadow maps and no post-processing.
-   The native `Canvas` has no `dpr` prop, so keep geometry segment counts low instead.
-5. All text, cards, inputs and buttons are React Native views layered over the canvas.
+4. **Keep pixels cheap.** The graphics chip's pixel work is the limit, not the triangle
+   count.
+   - The canvas draws at no more than 2 pixels per point and is stretched to fill the
+     screen (`RENDER_SCALE` in `mascot-3d.tsx`). The native `Canvas` has no `dpr` prop, so
+     this is done by drawing into a smaller view and scaling it up.
+   - Edge smoothing (MSAA) is off: `gl={{ antialias: false }}`.
+   - Anything that doesn't move is unlit. The island's sunlight is baked into its vertex
+     colors (`scene/lighting.ts`), so its 52k triangles are a single unlit draw call.
+   - Only Pinsan is lit live (Lambert, 3 lights). Change the light in `LIGHTS` so the baked
+     light and the live light stay in step.
+   - No shadow maps and no post-processing.
+5. **Judge smoothness on a real phone.** The emulator tops out at 15–30 fps even for an
+   empty scene. Development builds show an fps badge in the bottom-left corner.
+6. All text, cards, inputs and buttons are React Native views layered over the canvas.
    Never render UI inside three.js.
 
 ## Screens and routes
@@ -241,13 +264,21 @@ The home island is built from the AI-generated top-down map in `docs/design/isla
   after changing the map, then `npm run format`.
 - **Runtime:** `src/features/mascot/scene/build-*.ts` build cliffs, trees, rocks, props,
   flowers and grass from that data. Every piece gets per-face colors and all of them merge
-  into one mesh, so the scene is one draw call (about 52k triangles). The build takes about
-  0.9 s on the emulator, once per app launch.
-- **Camera:** drag to turn and tilt, pinch to zoom (3.5–40 units), double-tap to return home.
-  The state lives in `scene/orbit.ts`; zooming out shifts the camera's focus from Pinsan to
-  the whole island.
-- **Scale:** the island is about 16 units across, roughly 10 Pinsans, so Pinsan has room to
-  walk. Walking is the next step: the terrain grid already marks where the paths are.
+  into one mesh, so the scene is one draw call (about 52k triangles), with the sunlight baked
+  into its colors. The build takes about 0.6 s on the emulator, once per app launch. Its
+  loops work on raw vertex arrays, because three's per-vertex helpers are slow on Hermes.
+- **Camera:** drag to turn and tilt, pinch or use the + and − buttons to zoom (3.5–40 units),
+  double-tap to return home. The buttons are there for anyone who can't pinch.
+  The state lives in `scene/orbit.ts`. The camera trails Pinsan as it walks; zooming out
+  shifts its focus from Pinsan to the whole island.
+- **Walking:** `scene/walk-grid.ts` turns the terrain grid into a walkable map. Water, the rim,
+  trees, rocks and props are blocked, and the bridge is the only way over the stream. A*
+  finds paths across it, preferring the dirt paths to the grass. `scene/walker.ts` moves
+  Pinsan:
+  - It strolls between the landmarks on its own.
+  - Tap the ground and it walks there.
+  - Whenever its mood isn't `idle` (typing, the AI working), it stops and faces you.
+- **Scale:** the island is about 16 units across, roughly 10 Pinsans.
 
 ## Open questions
 
@@ -261,6 +292,7 @@ The home island is built from the AI-generated top-down map in `docs/design/isla
 
 Frameworks: three.js, React Three Fiber, expo-gl, Reanimated, Zustand, React Native Gesture
 Handler. Fonts: Fredoka and Nunito (SIL OFL). Assets: mascot and island built in code during
-the hackathon. The island layout map and the scene, prop and sky reference images were
+the hackathon. The island layout map, the character sheets (turnaround, model sheet,
+expressions, walk cycle, details) and the scene, prop and sky reference images were
 generated with an AI image model during the hackathon; the ground texture is derived from
 the map.

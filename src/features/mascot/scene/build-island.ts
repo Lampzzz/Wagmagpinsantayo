@@ -4,10 +4,14 @@ import { buildCliffs } from './build-cliffs';
 import { buildPlants } from './build-plants';
 import { buildProps } from './build-props';
 import { merge, seeded } from './geometry';
+import { bakeLight } from './lighting';
 
 let cached: BufferGeometry | null = null;
 
-/** Everything static on the island as one vertex-colored geometry. Built once, then reused. */
+/**
+ * Everything static on the island as one geometry, its colors already lit by the sun, so it
+ * draws unlit. Built once, then reused.
+ */
 export function islandDecor() {
   if (cached) return cached;
   const started = performance.now();
@@ -16,7 +20,7 @@ export function islandDecor() {
   buildCliffs(parts, rng);
   buildPlants(parts, rng);
   buildProps(parts, rng);
-  cached = merge(parts);
+  cached = bakeLight(merge(parts));
   if (__DEV__) {
     const triangles = cached.getAttribute('position').count / 3;
     const ms = Math.round(performance.now() - started);

@@ -1,8 +1,10 @@
 import { useLoader } from '@react-three/fiber/native';
 import { Asset } from 'expo-asset';
 import {
+  Color,
   ExtrudeGeometry,
-  MeshStandardMaterial,
+  MeshBasicMaterial,
+  MeshLambertMaterial,
   SRGBColorSpace,
   Shape,
   TextureLoader,
@@ -11,6 +13,7 @@ import {
 } from 'three';
 
 import { ISLAND_MAP } from '../scene/island-map';
+import { lightFacing } from '../scene/lighting';
 
 // The walkable top: the island outline extruded into a thin grass slab, with the ground
 // texture baked from the top-down map on its top face.
@@ -30,8 +33,10 @@ const GEOMETRY = (() => {
   return new ExtrudeGeometry(shape, { depth: LIP, bevelEnabled: false, steps: 1 });
 })();
 
-const SIDE = new MeshStandardMaterial({ color: '#7FA448', roughness: 1, flatShading: true });
-const PLAIN_TOP = new MeshStandardMaterial({ color: '#9CC25A', roughness: 1 });
+// The top is flat and faces straight up, so its sunlight is one color: baked in, drawn unlit.
+const SUNLIT_TOP = lightFacing(0, 1, 0);
+const SIDE = new MeshLambertMaterial({ color: '#7FA448', flatShading: true });
+const PLAIN_TOP = new MeshBasicMaterial({ color: new Color('#9CC25A').multiply(SUNLIT_TOP) });
 
 function Slab({ top }: { top: Material }) {
   return (
@@ -44,7 +49,7 @@ function Slab({ top }: { top: Material }) {
   );
 }
 
-const groundMaterials = new WeakMap<Texture, MeshStandardMaterial>();
+const groundMaterials = new WeakMap<Texture, MeshBasicMaterial>();
 
 /** Map the texture so it lines up with world coordinates, once per loaded texture. */
 function groundMaterial(texture: Texture) {
@@ -55,7 +60,7 @@ function groundMaterial(texture: Texture) {
     texture.repeat.set(1 / (2 * half), 1 / (2 * half));
     texture.offset.set(0.5 - textureCenter[0] / (2 * half), 0.5 + textureCenter[1] / (2 * half));
     texture.needsUpdate = true;
-    material = new MeshStandardMaterial({ map: texture, roughness: 1 });
+    material = new MeshBasicMaterial({ map: texture, color: SUNLIT_TOP });
     groundMaterials.set(texture, material);
   }
   return material;

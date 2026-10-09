@@ -46,6 +46,18 @@ export function terrainAt(x: number, z: number): Terrain {
   return TERRAIN[terrain[row][col]];
 }
 
+/** Height of the bridge's arched planks at `x` along it, measured from its middle. */
+export function bridgeArc(x: number) {
+  return 0.14 + 0.2 * (1 - (x / 0.72) ** 2);
+}
+
+/** Height of the bridge's walking surface: the plank tops, then a short ramp past each end. */
+export function bridgeDeckHeight(x: number) {
+  const d = Math.abs(x);
+  if (d <= 0.72) return bridgeArc(d) + 0.03;
+  return Math.max(0, 0.17 * (1 - (d - 0.72) / 0.18));
+}
+
 export function angleOf(x: number, z: number) {
   return Math.atan2(z, x);
 }

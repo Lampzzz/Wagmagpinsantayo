@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { MeshStandardMaterial } from 'three';
+import { MeshBasicMaterial } from 'three';
 
 import { islandDecor } from '../scene/build-island';
 import { IslandGround, IslandGroundPlaceholder } from './island-ground';
@@ -8,11 +8,8 @@ import { Waterfall } from './waterfall';
 // The floating island from docs/design/island-map.png: textured ground, one merged mesh for
 // every static piece (cliffs, trees, rocks, props, flowers), and the animated waterfall.
 
-const DECOR_MATERIAL = new MeshStandardMaterial({
-  vertexColors: true,
-  flatShading: true,
-  roughness: 1,
-});
+// Unlit: the sunlight is already baked into the decor's vertex colors (see scene/lighting).
+const DECOR_MATERIAL = new MeshBasicMaterial({ vertexColors: true });
 
 export function Island() {
   const decor = islandDecor(); // built on first use, then cached

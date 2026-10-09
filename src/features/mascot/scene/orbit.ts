@@ -48,6 +48,11 @@ export function pinch(scale: number) {
   orbit.distance = clamp(orbit.pinchFrom / scale, DISTANCE);
 }
 
+/** Zoom from a button: a factor below 1 moves closer, above 1 moves away. */
+export function zoomBy(factor: number) {
+  orbit.distance = clamp(orbit.distance * factor, DISTANCE);
+}
+
 /** Glide back to the home view, unwinding the short way round. */
 export function resetOrbit() {
   orbit.azimuth = Math.round(orbit.azimuth / (Math.PI * 2)) * Math.PI * 2;

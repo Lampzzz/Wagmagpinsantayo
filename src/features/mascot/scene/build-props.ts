@@ -8,7 +8,7 @@ import {
 
 import { between, lumpy, paint, pick, place, stamp, type Rng } from './geometry';
 import { ISLAND_MAP } from './island-map';
-import { LANDMARKS, angleGap, edgeRadiusAt, pondRadiusAt, terrainAt } from './layout';
+import { LANDMARKS, angleGap, bridgeArc, edgeRadiusAt, pondRadiusAt, terrainAt } from './layout';
 
 const STONE = ['#CFC6B8', '#C2B8A9', '#D8CEBF', '#BDB2A3'] as const;
 const MOSS = ['#9DB352', '#8AA84A'] as const;
@@ -191,7 +191,7 @@ function gardenBed(parts: BufferGeometry[], rng: Rng) {
 
 function bridge(parts: BufferGeometry[], rng: Rng) {
   const put = frame(parts, rng, LANDMARKS.bridge[0], LANDMARKS.bridge[1], 0);
-  const arc = (x: number) => 0.14 + 0.2 * (1 - (x / 0.72) ** 2);
+  const arc = bridgeArc;
   for (let i = 0; i < 8; i++) {
     const x = -0.62 + i * 0.177;
     const slope = (-0.4 * x) / 0.72 ** 2;

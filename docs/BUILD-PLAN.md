@@ -22,8 +22,9 @@ emulator. Typecheck, lint, Prettier and all 677 tests pass. Nothing has been pus
    session 2a.)
 4. **Fill the placeholders** in README.md, docs/SUBMISSION.md and docs/PITCH.md: team name,
    member names, demo video and post URLs, phone model, the AI image tool's name.
-5. **GitHub:** push `development`, set it as the default branch (it's `planning-stage` now,
-   with no app code), and make the repo public.
+5. **GitHub:** push `development`. The repo is already public. The default branch is still
+   `planning-stage` (no app code), and only the owner, Lampzzz, can change it: ask Lampzzz to
+   set it to `development` (Settings → General → Default branch).
 6. **Record** the ~1-minute video in airplane mode (script in docs/PITCH.md), post it on X or
    LinkedIn with #AppBuildersPH, then **submit once** before 10:00 AM.
 
@@ -48,8 +49,8 @@ files, and nobody edits anyone else's.
 - **Defaults picked by session 2a** (the user didn't say): tap to start and tap to stop the
   mic; Pinsan doesn't read replies aloud (`READ_REPLIES_ALOUD = false`).
 - **Waiting for the user at 5 AM:** GitHub's default branch (it's `planning-stage`, with no app
-  code) and making the repo public; turning off the AI library's download statistics; the
-  advice bubble (W7) and a 3D notepad.
+  code; only the owner, Lampzzz, can change it; the repo is already public); turning off the AI
+  library's download statistics; the advice bubble (W7) and a 3D notepad.
 
 ## Where the work happens
 

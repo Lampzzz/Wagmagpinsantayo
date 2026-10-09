@@ -147,16 +147,16 @@ git clone -b development https://github.com/Lampzzz/Wagmagpinsantayo.git
 cd Wagmagpinsantayo
 ```
 
-> **Windows: clone to a short path outside OneDrive**, for example `C:\pz`:
+> **Windows: clone to a short path outside OneDrive**, for example `C:\src\pinsan`:
 >
 > ```powershell
-> git clone -b development https://github.com/Lampzzz/Wagmagpinsantayo.git C:\pz
-> cd C:\pz
+> git clone -b development https://github.com/Lampzzz/Wagmagpinsantayo.git C:\src\pinsan
+> cd C:\src\pinsan
 > ```
 >
-> From a long path such as `C:\Users\…\OneDrive\Documents\GitHub\Wagmagpinsantayo` the native
-> build fails with `ninja: error: mkdir(…): No such file or directory`. CMake 3.22.1's ninja
-> can't handle paths over 260 characters, even with long paths enabled in Windows.
+> From a long path, such as a folder inside OneDrive, the native build fails with
+> `ninja: error: mkdir(…): No such file or directory`. CMake 3.22.1's ninja can't handle paths
+> over 260 characters, even with long paths enabled in Windows.
 
 ### 2. Install packages
 

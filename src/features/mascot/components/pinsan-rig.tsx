@@ -3,6 +3,7 @@ import { useRef } from 'react';
 import { MeshBasicMaterial, type Group, type Mesh } from 'three';
 
 import { useMascotStore } from '../hooks/use-mascot';
+import { trackAnchor } from '../scene/anchor';
 import { stepWalker, trackView, walker } from '../scene/walker';
 import { Pinsan } from './pinsan';
 
@@ -46,6 +47,7 @@ export function PinsanRig({ viewScale }: { viewScale: number }) {
       rig.current.position.set(walker.x, walker.y, walker.z);
       rig.current.rotation.y = walker.heading;
     }
+    trackAnchor(camera, size.width * viewScale, size.height * viewScale);
     if (marker.current) showMarker(marker.current, t);
   });
 

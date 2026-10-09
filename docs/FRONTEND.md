@@ -111,9 +111,23 @@ The rest of the app only sees this:
 // src/features/mascot/index.ts
 export { Mascot } from './components/mascot'; // renders 3D or the 2D fallback
 export { useMascot } from './hooks/use-mascot'; // { mood, setMood }
+export { usePinsanAnchor } from './hooks/use-pinsan-anchor'; // where to hang bubbles
+export type { PinsanAnchor } from './scene/anchor'; // { x, y, visible }
+export { focusPinsan, releaseFocus } from './scene/orbit'; // close-up while you talk
 export type { MascotMood } from './types';
 ```
 
+- **Talking to Pinsan:** call `focusPinsan()` when the mic opens. The camera glides in, in
+  about half a second, to a close front view, with the top third of the screen free for the
+  bubble. Pinsan already turns to face the camera whenever his mood isn't `idle`.
+  `releaseFocus()` glides back to the view from before. A drag, pinch, the zoom buttons or a
+  double-tap also end the close-up, because touch always wins.
+- **Bubbles:** `usePinsanAnchor()` is a Reanimated shared value holding the spot just above
+  the tip of Pinsan's curl, in points from the 3D view's top-left (the screen, on a
+  full-screen Home), plus whether it's on screen. It updates every frame while the scene
+  renders. Read it in `useAnimatedStyle`, so bubbles follow Pinsan without React re-renders.
+- **While the AI thinks** (mood `thinking`), the canvas draws at most 15 frames a second
+  (`THINKING_FPS` in `mascot-3d.tsx`), so the phone's cores go to the model. Nothing to call.
 - Keep mood in a tiny store (`zustand`). Inside `useFrame`, read it with
   `useMascotStore.getState()` so mood changes never re-render the canvas.
 - Features set the mood around AI calls (`setMood('thinking')` → await →

@@ -83,6 +83,7 @@ function createWorld(options: { model?: AssistantDeps['interpretWithModel']; now
           id: nextId++,
           title: action.reminder.title,
           scheduledAt: action.reminder.scheduledAt,
+          repeat: action.reminder.repeat ?? null,
           status: 'scheduled',
           notificationId: alert === 'scheduled' ? 'reminder-x' : null,
           taskId,

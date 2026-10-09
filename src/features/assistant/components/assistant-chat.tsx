@@ -5,7 +5,6 @@ import {
   FlatList,
   ScrollView,
   StyleSheet,
-  Text,
   View,
   type ListRenderItem,
 } from 'react-native';
@@ -14,7 +13,8 @@ import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
 import { Notice } from '@/components/ui/notice';
-import { COLORS, FONT_SIZES, RADII, SPACING } from '@/constants/theme';
+import { Text } from '@/components/ui/text';
+import { COLORS, FONT_SIZES, FONTS, RADII, SHADOWS, SPACING } from '@/constants/theme';
 import type { AiAvailability } from '@/features/ai-setup';
 
 import { useAssistant, type ChatMessage } from '../hooks/use-assistant';
@@ -76,7 +76,7 @@ function messageKey(message: ChatMessage) {
 function Thinking() {
   return (
     <View style={styles.thinking} accessibilityLiveRegion="polite">
-      <ActivityIndicator color={COLORS.primary} />
+      <ActivityIndicator color={COLORS.primaryDark} />
       <Text style={styles.hint}>Thinking…</Text>
     </View>
   );
@@ -130,8 +130,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: SPACING.sm,
     padding: SPACING.md,
-    borderRadius: RADII.md,
+    borderRadius: RADII.lg,
     backgroundColor: COLORS.surface,
+    ...SHADOWS.card,
   },
   welcome: {
     flexGrow: 1,
@@ -140,8 +141,8 @@ const styles = StyleSheet.create({
     padding: SPACING.md,
   },
   welcomeTitle: {
+    fontFamily: FONTS.display,
     fontSize: FONT_SIZES.title,
-    fontWeight: '700',
     color: COLORS.text,
   },
   examples: {

@@ -1,14 +1,6 @@
 import { router, Stack } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 import { readWhenInput, WhenField, type WhenInput } from '@/components/common/when-field';
@@ -17,8 +9,17 @@ import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
 import { HeaderButton } from '@/components/ui/header-button';
 import { Notice } from '@/components/ui/notice';
+import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
-import { COLORS, FONT_SIZES, RADII, SPACING } from '@/constants/theme';
+import {
+  COLORS,
+  FONT_SIZES,
+  FONTS,
+  PRESSED_SCALE,
+  RADII,
+  SHADOWS,
+  SPACING,
+} from '@/constants/theme';
 import { useReminders } from '@/features/reminders';
 import { useNow } from '@/hooks/use-now';
 import { capitalize } from '@/utils/capitalize';
@@ -57,7 +58,7 @@ function SavedTask({ id, onClose }: { id: number; onClose: () => void }) {
   if (status === 'loading') {
     return (
       <View style={styles.message}>
-        <ActivityIndicator color={COLORS.primary} />
+        <ActivityIndicator color={COLORS.primaryDark} />
       </View>
     );
   }
@@ -289,9 +290,11 @@ const styles = StyleSheet.create({
   field: {
     gap: SPACING.sm,
   },
+  // Matches TextField's label, so "Priority" and "Reminders" line up with "Title" and "Notes".
   label: {
+    marginStart: SPACING.xs,
+    fontFamily: FONTS.bodyBold,
     fontSize: FONT_SIZES.caption,
-    fontWeight: '600',
     color: COLORS.textMuted,
   },
   chips: {
@@ -302,15 +305,16 @@ const styles = StyleSheet.create({
   reminder: {
     gap: SPACING.xs,
     padding: SPACING.md,
-    borderRadius: RADII.md,
+    borderRadius: RADII.lg,
     backgroundColor: COLORS.surface,
+    ...SHADOWS.card,
   },
   pressed: {
-    opacity: 0.7,
+    transform: [{ scale: PRESSED_SCALE }],
   },
   reminderTitle: {
+    fontFamily: FONTS.bodyBold,
     fontSize: FONT_SIZES.body,
-    fontWeight: '600',
     color: COLORS.text,
   },
   reminderTime: {

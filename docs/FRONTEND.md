@@ -75,8 +75,9 @@ So that it reads as rounded clay:
   the foot and fades as it lifts. On the bridge each foot stands on the deck right under it
   (`groundUnder` in `scene/walker.ts`), so neither floats nor sinks on the slope.
 
-**Studio (development only).** `exp://<host>:8081/--/studio?view=front&paint=0` shows Pinsan
-alone on the character sheets' light grey, in the island's light. Views: `front`,
+**Studio (development only).** `wagmagpinsantayo://studio?view=front&paint=0` (on Android:
+`adb shell am start -a android.intent.action.VIEW -d "wagmagpinsantayo://studio?view=front&paint=0"`)
+shows Pinsan alone on the character sheets' light grey, in the island's light. Views: `front`,
 `turnaround`, `walk` (the walk sheet's six poses) and `moods`. `paint=0` hides the brush
 strokes so shape and light can be judged on their own. Check model changes here against the
 sheets before looking at them on the island.
@@ -129,8 +130,15 @@ Checked against the SDK 57 docs and npm on Oct 9:
 - **`expo-gl` 57.0.2** (the WebGL context) is included in Expo Go, which is how the mascot
   was built. **Since the merge into `development` the app needs a development build:**
   `react-native-executorch`, SQLite, the audio API and the keyboard controller aren't in
-  Expo Go. Build and install it with `npx expo run:android` (the first build downloads the
-  NDK and takes a while), then start Metro with `npx expo start --dev-client`.
+  Expo Go. Build and install it with `npx expo run:android`, then start Metro with
+  `npx expo start --dev-client`.
+  - The first build installs NDK 27.0 and 27.1, CMake 3.22.1 and Android platform 36 by
+    itself (about 16 minutes); later builds take about 4.
+  - **On Windows, build from a short path outside OneDrive** (for example a clone in
+    `C:\pz`). From `C:\Users\…\OneDrive\Documents\GitHub\Wagmagpinsantayo` the native build
+    fails with `ninja: error: mkdir(…): No such file or directory`: CMake 3.22.1's ninja
+    can't handle paths over 260 characters, even with long paths enabled in Windows. Metro
+    can still serve the JavaScript from the usual folder.
 - **`@react-three/fiber` 9.8.1** supports React `>=19 <19.4` (we're on 19.2.3) and React
   Native `>=0.78`. Its other peers are `three`, `expo-gl`, `expo-asset` and
   `expo-file-system`. Import `Canvas` from `@react-three/fiber/native`.

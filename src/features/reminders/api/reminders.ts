@@ -61,7 +61,8 @@ export async function createReminder(input: NewReminder): Promise<SavedReminder>
     input.taskId !== undefined && input.taskId !== null && (await selectTaskTitle(input.taskId))
       ? input.taskId
       : null;
-  const id = await insertReminder({ title, scheduledAt: input.scheduledAt, taskId });
+  const repeat = input.repeat === 'daily' ? 'daily' : null;
+  const id = await insertReminder({ title, scheduledAt: input.scheduledAt, repeat, taskId });
   notifyTableChanged('reminders');
   const alert = await armAlert(id, title, input.scheduledAt, { ask: true });
   return { reminder: await requireReminder(id), alert };
@@ -79,9 +80,12 @@ export async function updateReminder(id: number, changes: ReminderChanges): Prom
   const reactivate =
     changes.scheduledAt !== undefined && current.status !== 'scheduled' && scheduledAt > Date.now();
 
+  const repeat = changes.repeat === undefined ? current.repeat : changes.repeat;
   await updateReminderRow(
     id,
-    reactivate ? { title, scheduledAt, status: 'scheduled' } : { title, scheduledAt },
+    reactivate
+      ? { title, scheduledAt, repeat, status: 'scheduled' }
+      : { title, scheduledAt, repeat },
   );
   notifyTableChanged('reminders');
 

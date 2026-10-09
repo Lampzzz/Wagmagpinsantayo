@@ -16,6 +16,7 @@ export type {
   Reminder,
   ReminderChanges,
   ReminderGroup,
+  ReminderRepeat,
   ReminderStatus,
   SavedReminder,
 } from './types';

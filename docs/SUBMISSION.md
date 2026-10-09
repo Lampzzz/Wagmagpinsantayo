@@ -18,8 +18,9 @@ are no edits or resubmissions, so finish the checklist first.
       `docs/FEATURES.md` is ticked.
 - [ ] The final commit is pushed before 10:00 AM. Judges see the repository as of the deadline.
 - [ ] GitHub's default branch is set to `development` (Settings → General → Default branch). It
-      is still `planning-stage`, which has no app code, so judges would miss this README.
-- [ ] The repository is public. Open it in a private browser window to check.
+      is still `planning-stage`, which has no app code, so judges would miss this README. Only
+      the repository's owner can change it.
+- [x] The repository is public.
 - [ ] The demo phone is ready: the AI models are downloaded before the demo (☰ → AI setup says
       **AI is ready**), notifications are allowed, and "Alarms & reminders" is allowed for the app
       (Android 14 and later).
@@ -173,8 +174,8 @@ Delete this note before submitting.
 >   expressions, walk cycle, details) and the scene, prop and sky reference images. Image model:
 >   [PLACEHOLDER: name of the AI image model or tool]. Our script `scripts/bake-island.py` turns
 >   the map into the ground texture and layout data. Only the map is in the repository.
-> - Design inspiration: the Tolan app's screens on Mobbin, for layout patterns only. Pinsan is an
->   original character, and no Tolan assets are used.
+> - Design inspiration: layout patterns from companion apps on Mobbin. Pinsan is an original
+>   character, and no assets from other apps are used.
 > - Planning notes (rules summary and idea lists) were started during the briefing, before
 >   building began at 2:30 PM. They contain no code.
 > - Agent instructions for AI coding tools (`AGENTS.md`, `CLAUDE.md`, `.claude/skills/`) were added

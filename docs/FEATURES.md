@@ -20,8 +20,8 @@ Status at the code freeze (10:00 AM, Oct 10).
 | 3   | Extract Tasks (AI)       | ✅ Done | 9/10     | 1 needs the demo phone |
 | 4   | Smart Quick Add          | ✅ Done | 13/14    | 1 rule not built       |
 | 5   | Tasks + Reminders        | ✅ Done | 14/14    |                        |
-| 6   | Assistant (text + voice) | ✅ Done | 12/13    | 1 needs the demo phone |
-| 7   | Home: talk to Pinsan     | ✅ Done | 9/10     | 1 needs the demo phone |
+| 6   | Assistant (text + voice) | ✅ Done | 13/14    | 1 needs the demo phone |
+| 7   | Home: talk to Pinsan     | ✅ Done | 10/11    | 1 needs the demo phone |
 | 8   | Journal                  | ✅ Done | 7/7      |                        |
 | 9   | Every-day reminders      | ✅ Done | 7/7      |                        |
 | 10  | Emergency call           | ✅ Done | 8/8      |                        |
@@ -178,6 +178,7 @@ or in ☰ → Conversations, a chat view of the same assistant.
 - [x] Chat screen with a text box, a send button and a mic button
 - [x] Voice: tap the mic, speak and see a live transcript; the request then
       runs exactly like typed text
+- [x] "Start over" while you talk throws your words away and listens again
 - [x] Replies show on screen and aren't read aloud, by design
       (`READ_REPLIES_ALOUD = false`); screen readers announce each reply
 - [x] Common wordings are understood instantly by fixed rules, even before
@@ -207,6 +208,8 @@ Home is Pinsan's island. You talk to him there, and the ☰ menu opens everythin
 - [x] Tap the mic to start and again to stop; the camera glides in to Pinsan's
       face while he listens
 - [x] Your words appear live on a paper note
+- [x] "Start over" on the paper note throws your words away, and Pinsan listens
+      again
 - [x] A keyboard button for typing; typed requests take the same path
 - [x] Pinsan answers in a speech bubble with buttons; a question stays until
       it's answered, and a finished reply fades after about 6 seconds

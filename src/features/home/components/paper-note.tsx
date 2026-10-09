@@ -1,6 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
+import { START_OVER_HEIGHT, StartOverChip } from '@/components/common/start-over-chip';
 import { Text } from '@/components/ui/text';
 import { COLORS, FONT_SIZES, FONTS, SHADOWS, SPACING } from '@/constants/theme';
 
@@ -17,10 +18,12 @@ type PaperNoteProps = {
   words: string;
   /** Shown before any words arrive. */
   placeholder: string;
+  /** Shows "Start over", which throws the words away and listens again. */
+  onStartOver?: () => void;
 };
 
 /** A cream paper note, slightly askew, where your words appear as Pinsan hears them. */
-export function PaperNote({ label, words, placeholder }: PaperNoteProps) {
+export function PaperNote({ label, words, placeholder, onStartOver }: PaperNoteProps) {
   return (
     <Animated.View
       entering={FadeIn.duration(180)}
@@ -31,6 +34,7 @@ export function PaperNote({ label, words, placeholder }: PaperNoteProps) {
       <View style={styles.labelRow}>
         <View style={styles.dot} />
         <Text style={styles.label}>{label}</Text>
+        {onStartOver && <StartOverChip onPress={onStartOver} />}
       </View>
       <View style={styles.page}>
         {Array.from({ length: LINES }, (_, index) => (
@@ -70,6 +74,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: SPACING.xs + 2,
     marginStart: SPACING.md,
+    // Room for "Start over" even without it, so the note keeps its size when it goes.
+    minHeight: START_OVER_HEIGHT,
   },
   // A small red dot, as on a recorder. Decorative: the label says what's happening.
   dot: {

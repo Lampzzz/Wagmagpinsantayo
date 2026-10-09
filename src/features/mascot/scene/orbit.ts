@@ -9,11 +9,11 @@ const DISTANCE = [3.5, 40] as const;
 const TURN_PER_PX = 0.006;
 const TILT_PER_PX = 0.004;
 
-// The close-up while you talk to Pinsan (focusPinsan): near and almost level, looking at a
-// point above his chest so his head sits in the middle of the screen with room above it for
-// the speech bubble. The camera keeps its direction, because Pinsan turns to face it whenever
-// his mood isn't idle.
-export const FOCUS = { distance: 3.1, elevation: 0.06, height: 1.25 };
+// The close-up while you talk to Pinsan (focusPinsan): level with him, close enough that his
+// head and ears fill the width of a phone, and aimed above his head so the top of the screen
+// stays free for the speech bubble. The camera keeps its direction, because Pinsan turns to
+// face it whenever his mood isn't idle.
+export const FOCUS = { distance: 4.3, elevation: 0, height: 1.45 };
 
 export const orbit = {
   ...ORBIT_HOME,

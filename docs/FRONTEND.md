@@ -118,8 +118,10 @@ export type { MascotMood } from './types';
 ```
 
 - **Talking to Pinsan:** call `focusPinsan()` when the mic opens. The camera glides in, in
-  about half a second, to a close front view, with the top third of the screen free for the
-  bubble. Pinsan already turns to face the camera whenever his mood isn't `idle`.
+  about half a second, to a front view of his head and upper body (`FOCUS` in
+  `scene/orbit.ts`). The anchor sits about 38% down the screen, leaving the space between the
+  title bar and his curl for the bubble. Pinsan already turns to face the camera whenever his
+  mood isn't `idle`.
   `releaseFocus()` glides back to the view from before. A drag, pinch, the zoom buttons or a
   double-tap also end the close-up, because touch always wins.
 - **Bubbles:** `usePinsanAnchor()` is a Reanimated shared value holding the spot just above

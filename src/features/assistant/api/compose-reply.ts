@@ -1,7 +1,7 @@
 import type { AlertOutcome, Reminder } from '@/features/reminders';
 import type { Task } from '@/features/tasks';
 import { capitalize } from '@/utils/capitalize';
-import { formatRelative, formatWhen } from '@/utils/format-when';
+import { formatDay, formatRelative, formatTime, formatWhen } from '@/utils/format-when';
 import { calendarDaysBetween } from '@/utils/resolve-when';
 
 import type {
@@ -64,7 +64,7 @@ export function composeReply({ steps, question, preface = [], now }: ReplyParts)
         lines.push(same(skippedText(step.action)));
         break;
       case 'failed':
-        lines.push(same(`Something went wrong, so I couldn't ${actionWords(step.action)}.`));
+        lines.push(failedLine(step.action));
         break;
       case 'not-attempted':
         notAttempted.push(step.command);
@@ -74,7 +74,7 @@ export function composeReply({ steps, question, preface = [], now }: ReplyParts)
   if (notAttempted.length > 0) {
     lines.push(same(`I didn't get to: ${notAttempted.map(commandWords).join('; ')}.`));
   }
-  if (question) lines.push(same(question.prompt));
+  if (question) lines.push(questionLine(question));
 
   const onlyTrouble = steps.every(
     (step) => step.kind === 'problem' || step.kind === 'failed' || step.kind === 'not-attempted',
@@ -124,7 +124,7 @@ export function composeRecurring(preface: readonly string[] = []): AssistantRepl
   return composeMessage(
     [
       ...preface,
-      'Repeating reminders aren\'t supported yet. I can set a one-time reminder instead, like "Remind me tomorrow at 8 AM to take my medicine".',
+      'I can only repeat a reminder every day for now, like "Remind me every day at 8 AM to take my medicine".',
     ].join('\n'),
     { isError: true },
   );
@@ -142,7 +142,20 @@ function ranLine(step: Extract<Step, { kind: 'ran' }>, now: number): Line {
     case 'reminder-saved':
       return same(reminderSavedText(action, outcome.reminder, outcome.alert, now));
     case 'reminder-closed': {
-      const { title, status } = outcome.reminder;
+      const { title, status, repeat, scheduledAt } = outcome.reminder;
+      // Done or dismissed, a daily reminder only skips today, and it rings again next time.
+      if (repeat === 'daily' && status === 'scheduled') {
+        const skipped =
+          action.kind === 'close-reminder' && action.status === 'completed'
+            ? `Done for today: "${title}".`
+            : `Skipped for today: "${title}".`;
+        const again = `I'll remind you again ${formatWhen(scheduledAt, true, now)}.`;
+        return same(
+          outcome.alertCleared
+            ? `${skipped} ${again}`
+            : `${skipped} I couldn't update its alert, so it may still go off today.`,
+        );
+      }
       const done =
         status === 'completed'
           ? `Marked the reminder "${title}" as done.`
@@ -155,7 +168,34 @@ function ranLine(step: Extract<Step, { kind: 'ran' }>, now: number): Line {
       return same(
         `Deleted the reminder "${titleOf(action)}".${outcome.alertCleared ? '' : ' Its alert may still go off.'}`,
       );
+    case 'dialer-opened':
+      return withNumber(`Opening your phone's dialer with ${outcome.number}.`, outcome.number);
+    case 'note-saved':
+      return same('Saved to your journal.');
   }
+}
+
+// A calm way out: dialing by hand always works.
+function failedLine(action: Action): Line {
+  if (action.kind === 'call-emergency') {
+    return withNumber(
+      `I couldn't open the dialer. Dial ${action.number} from your phone app.`,
+      action.number,
+    );
+  }
+  return same(`Something went wrong, so I couldn't ${actionWords(action)}.`);
+}
+
+function questionLine(question: Question): Line {
+  if (question.kind === 'confirm' && question.action.kind === 'call-emergency') {
+    return withNumber(question.prompt, question.action.number);
+  }
+  return same(question.prompt);
+}
+
+// Read aloud digit by digit: "9 1 1", never "nine hundred eleven".
+function withNumber(text: string, number: string): Line {
+  return { text, speech: text.split(number).join(number.split('').join(' ')) };
 }
 
 function taskSavedText(action: Action, task: Task, stillOn: readonly Reminder[], now: number) {
@@ -201,10 +241,15 @@ function taskSavedText(action: Action, task: Task, stillOn: readonly Reminder[],
 }
 
 function reminderSavedText(action: Action, reminder: Reminder, alert: AlertOutcome, now: number) {
-  const when = formatWhen(reminder.scheduledAt, true, now);
+  const when = reminderWhen(reminder, now);
   const untilIt = reminder.scheduledAt - now;
+  // A daily reminder says the day it starts instead: "every day at 8:00 AM, starting tomorrow".
   const soon =
-    untilIt > 0 && untilIt < SOON_MS ? ` (${formatRelative(reminder.scheduledAt, now)})` : '';
+    reminder.repeat === 'daily'
+      ? `, starting ${formatDay(reminder.scheduledAt, now)}`
+      : untilIt > 0 && untilIt < SOON_MS
+        ? ` (${formatRelative(reminder.scheduledAt, now)})`
+        : '';
   const noAlert =
     alert === 'no-permission'
       ? "Notifications are off, so it can't alert you."
@@ -238,10 +283,25 @@ function reminderSavedText(action: Action, reminder: Reminder, alert: AlertOutco
   return sentences.join(' ');
 }
 
+/**
+ * "tomorrow at 8:00 AM", or "every day at 8:00 AM" for a daily reminder: the words of
+ * the reminders list's describeReminderTime, lowercase for use mid-sentence. Written
+ * out here because this module only imports types from other features, so its tests
+ * don't load their screens.
+ */
+export function reminderWhen(
+  reminder: Pick<Reminder, 'scheduledAt' | 'repeat'>,
+  now: number,
+): string {
+  return reminder.repeat === 'daily'
+    ? `every day at ${formatTime(reminder.scheduledAt)}`
+    : formatWhen(reminder.scheduledAt, true, now);
+}
+
 function stillOnText(reminders: readonly Reminder[], now: number): string {
   if (reminders.length === 0) return '';
   if (reminders.length === 1) {
-    return ` Its reminder for ${formatWhen(reminders[0].scheduledAt, true, now)} is still on.`;
+    return ` Its reminder for ${reminderWhen(reminders[0], now)} is still on.`;
   }
   return ` Its ${reminders.length} reminders are still on.`;
 }
@@ -334,8 +394,15 @@ function taskItem(task: Task, now: number, withNotes: boolean): ReplyItem {
 }
 
 function reminderItem(reminder: Reminder, now: number): ReplyItem {
-  const parts = [capitalize(formatWhen(reminder.scheduledAt, true, now))];
-  if (reminder.status === 'scheduled' && reminder.scheduledAt <= now) parts.push('Past due');
+  // A daily reminder is never past due: it reads back at its next time.
+  const parts = [capitalize(reminderWhen(reminder, now))];
+  if (
+    reminder.repeat !== 'daily' &&
+    reminder.status === 'scheduled' &&
+    reminder.scheduledAt <= now
+  ) {
+    parts.push('Past due');
+  }
   if (reminder.status === 'completed') parts.push('Done');
   if (reminder.status === 'dismissed') parts.push('Dismissed');
   if (reminder.status === 'cancelled') parts.push('Cancelled');
@@ -372,6 +439,10 @@ function skippedText(action: Action): string {
     case 'delete-task':
     case 'delete-reminder':
       return `Okay, I kept "${titleOf(action)}".`;
+    case 'call-emergency':
+      return "Okay, I won't call.";
+    case 'create-note':
+      return "Okay, I didn't save it to your journal.";
     default:
       return `Okay, I left "${titleOf(action)}" as it was.`;
   }
@@ -400,6 +471,10 @@ function actionWords(action: Action): string {
           : `cancel ${title}`;
     case 'delete-reminder':
       return `delete the reminder ${title}`;
+    case 'call-emergency':
+      return 'open the dialer';
+    case 'create-note':
+      return 'save that to your journal';
   }
 }
 
@@ -428,6 +503,10 @@ function commandWords(command: Command): string {
     case 'edit-task':
     case 'edit-reminder':
       return `change "${command.target}"`;
+    case 'call-emergency':
+      return 'call emergency services';
+    case 'add-note':
+      return 'save a journal entry';
   }
 }
 
@@ -438,6 +517,10 @@ function titleOf(action: Action): string {
     case 'set-task-done':
     case 'delete-task':
       return action.task.title;
+    case 'call-emergency':
+      return 'emergency services';
+    case 'create-note':
+      return 'journal entry';
     default:
       return action.reminder.title;
   }

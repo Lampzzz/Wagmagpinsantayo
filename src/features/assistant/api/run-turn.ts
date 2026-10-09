@@ -25,6 +25,9 @@ import {
 } from './compose-reply';
 import { matchTitle } from './match-title';
 import { parseCommandRules } from './parse-command-rules';
+import { parseDailyReminder } from './parse-daily-reminder';
+import { parseEmergency } from './parse-emergency';
+import { parseJournalEntry } from './parse-journal';
 import { parseQuickAdd } from './parse-quick-add';
 import { resolveCommand, type ResolveContext } from './resolve-command';
 
@@ -47,6 +50,13 @@ const YES_WORDS =
   /^(?:yes|yeah|yep|yup|sure|ok|okay|do it|go ahead|confirm|correct|right|yes please|please do|that's right|delete it)$/;
 const NO_WORDS = /^(?:no|nope|nah|no thanks|don't|do not|keep it|leave it)$/;
 const NO_DATE_WORDS = /^(?:no date|no due date|no deadline|none|skip|without a date)$/;
+// "Yes, call", "Please hurry", "Help!": each a yes to "Call emergency services (911)?".
+const CALL_WORDS =
+  /^(?:(?:yes|yeah|yep|yup|ok|okay|sure|please|help|hurry|hurry up|quick|quickly|now|call|call it|call them|dial)(?: |$))+$/;
+// The emergency call and journal entries never look at saved tasks or reminders, so a
+// problem loading them can't hold these up.
+const NO_ITEMS: Snapshot = { tasks: [], reminders: [] };
+const NEEDS_NO_ITEMS = new Set(['call-emergency', 'add-note', 'create-note']);
 // Words that ask for the task to be saved, not just suggested.
 const ASKS_TO_ADD = /\b(?:add|create|put|save|tasks?|to-?dos?|list)\b/i;
 const ORDINALS = new Map([
@@ -115,6 +125,28 @@ async function startRequest(
     reply,
     state: { pending: null, focus },
   });
+  // A call for help comes first and goes straight to its question, with nothing before it.
+  const emergency = parseEmergency(text);
+  if (emergency) {
+    return runWork(
+      { work: [{ kind: 'command', command: emergency }], skipped: [] },
+      focus,
+      deps,
+      now,
+    );
+  }
+  // A journal entry is the user's own words: nothing in it is read as a request. Every
+  // day is the one repeat a reminder can have; other repeats are turned down below.
+  const whole = parseJournalEntry(text) ?? parseDailyReminder(text);
+  if (whole) {
+    return runWork(
+      { work: [{ kind: 'command', command: whole }], skipped: [] },
+      focus,
+      deps,
+      now,
+      preface,
+    );
+  }
   if (isRecurring(text)) return nothingPending(composeRecurring(preface));
 
   let commands = parseCommandRules(text);
@@ -169,7 +201,7 @@ async function runWork(
   for (let index = 0; index < queue.length; index++) {
     const item = queue[index];
     // Fresh each time, so a command sees what the ones before it changed.
-    const snapshot = await deps.loadSnapshot();
+    const snapshot = readsSavedItems(item) ? await deps.loadSnapshot() : NO_ITEMS;
     let action: Action;
     if (item.kind === 'execute') {
       action = item.action;
@@ -193,7 +225,7 @@ async function runWork(
     }
 
     try {
-      const outcome = await deps.execute(action);
+      const outcome = await perform(action, deps);
       steps.push({
         kind: 'ran',
         action,
@@ -224,6 +256,18 @@ async function runWork(
   };
 }
 
+// The emergency call goes to the phone's dialer, which only opens: the user taps Call
+// there. When it can't open, the step fails and the reply says to dial by hand.
+async function perform(action: Action, deps: AssistantDeps): Promise<Outcome> {
+  if (action.kind !== 'call-emergency') return deps.execute(action);
+  if (!(await deps.callEmergency())) throw new Error("The dialer didn't open.");
+  return { kind: 'dialer-opened', number: action.number };
+}
+
+function readsSavedItems(item: Work): boolean {
+  return !NEEDS_NO_ITEMS.has(item.kind === 'command' ? item.command.kind : item.action.kind);
+}
+
 function readAnswer(input: TurnInput, question: Question): Answer {
   if (input.kind === 'pick') {
     const option =
@@ -249,6 +293,13 @@ function readAnswer(input: TurnInput, question: Question): Answer {
     case 'confirm':
       // Saying a button's label ("Save", "Keep") counts as tapping it.
       if (YES_WORDS.test(words) || words === answerWords(question.yesLabel)) {
+        return { kind: 'confirm', yes: true };
+      }
+      // "Yes, call", or asking again ("Call an ambulance!"), is a yes to the emergency call.
+      if (
+        question.action.kind === 'call-emergency' &&
+        (CALL_WORDS.test(words) || parseEmergency(text))
+      ) {
         return { kind: 'confirm', yes: true };
       }
       if (NO_WORDS.test(words) || words === answerWords(question.noLabel)) {
@@ -279,7 +330,7 @@ function readAnswer(input: TurnInput, question: Question): Answer {
       break;
   }
 
-  if (parseCommandRules(text)) return { kind: 'new-request' };
+  if (isRequest(text)) return { kind: 'new-request' };
 
   // Looser answers, tried only once the text isn't a request of its own.
   if (question.kind === 'pick') {
@@ -288,10 +339,20 @@ function readAnswer(input: TurnInput, question: Question): Answer {
     const match = exact.length === 1 ? exact[0] : strong.length === 1 ? strong[0] : null;
     if (match) return { kind: 'pick', option: match.option };
   }
-  if (question.kind === 'fill' && question.field === 'title' && text) {
+  if (question.kind === 'fill' && question.field !== 'when' && text) {
     return { kind: 'fill', text };
   }
   return { kind: 'new-request' };
+}
+
+// A message that asks for something of its own, rather than answering the question.
+function isRequest(text: string): boolean {
+  return Boolean(
+    parseEmergency(text) ||
+    parseJournalEntry(text) ||
+    parseDailyReminder(text) ||
+    parseCommandRules(text),
+  );
 }
 
 // "The second one." → "second"

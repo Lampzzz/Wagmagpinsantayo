@@ -1,0 +1,72 @@
+import { parseEmergency } from './parse-emergency';
+
+describe('parseEmergency', () => {
+  it.each([
+    'call emergency',
+    'Call emergency services.',
+    'Call the emergency hotline',
+    'Emergency',
+    'Emergency!',
+    "It's an emergency!",
+    'This is an emergency, call 911!',
+    'Call 911',
+    'call 911 now',
+    'Dial 911.',
+    'Call 9-1-1',
+    'call nine one one',
+    '911',
+    'Call an ambulance',
+    'Call ambulance',
+    'Call for an ambulance!',
+    'Get me an ambulance',
+    'Call an ambulance for my dad',
+    'Send an ambulance to my house',
+    'Call the police',
+    'call police right now',
+    'Call the fire department',
+    'I need help',
+    'I need help now!',
+    'Help me',
+    'Help me, please!',
+    'Please help me',
+    'Somebody help!',
+    'Help! Call 911!',
+    'Hey Pinsan, call an ambulance, quick!',
+    'Pinsan, call 911',
+    'Can you call the police?',
+    'Could you please call 911 for me?',
+    'I need to call 911',
+    'Help me call 911',
+    'SOS',
+    "There's a fire!",
+  ])('reads %p as a call for help', (text) => {
+    expect(parseEmergency(text)).toEqual({ kind: 'call-emergency' });
+  });
+
+  it.each([
+    'Create a task to buy an emergency kit',
+    'Remind me to update my emergency contacts',
+    'Add emergency fund to my list',
+    'Emergency meeting tomorrow at 3',
+    'Remind me to call the police tomorrow at 9',
+    'Call the police station tomorrow',
+    'Call the police for my neighbor tomorrow',
+    'Call 911 at 5',
+    'Call my emergency contact',
+    'Call the emergency room',
+    "What's the emergency number?",
+    "Don't call 911",
+    'Call mom',
+    'Help',
+    'help!',
+    'Help me plan my day',
+    'I need help with my homework',
+    'Help me with my tasks',
+    'Note: call 911 if the alarm goes off',
+    'Fire the intern',
+    '',
+    '   ',
+  ])('leaves %p alone', (text) => {
+    expect(parseEmergency(text)).toBeNull();
+  });
+});

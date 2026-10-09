@@ -14,7 +14,7 @@ import { COLORS, PRESSED_SCALE, RADII, SHADOWS } from '@/constants/theme';
 
 import type { TalkStage } from '../hooks/use-talk-to-pinsan';
 
-export const MIC_SIZE = 76;
+const MIC_SIZE = 76;
 const PULSE_MS = 1400;
 
 type MicButtonProps = {

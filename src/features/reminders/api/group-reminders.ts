@@ -41,7 +41,7 @@ export function describeReminderTime(
   return capitalize(formatWhen(reminder.scheduledAt, true, now));
 }
 
-export function reminderGroup(reminder: Reminder, now: number): ReminderGroup {
+function reminderGroup(reminder: Reminder, now: number): ReminderGroup {
   if (reminder.status !== 'scheduled') return 'finished';
   return isReminderPastDue(reminder, now) ? 'past-due' : 'upcoming';
 }

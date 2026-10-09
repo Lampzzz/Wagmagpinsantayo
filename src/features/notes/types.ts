@@ -30,14 +30,6 @@ export type TaskSuggestion = {
   dueHasTime: boolean;
 };
 
-/** What the notes list shows for a note. `excerpt` is the start of the body. */
-export type NoteSummary = {
-  id: number;
-  title: string;
-  excerpt: string;
-  updatedAt: number;
-};
-
 /** A note as the journal shows it: dated by when it was written, with its whole text for search. */
 export type JournalEntry = {
   id: number;

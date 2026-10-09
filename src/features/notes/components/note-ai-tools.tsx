@@ -172,7 +172,6 @@ function SavedTasks({ outcome, onDismiss }: { outcome: TaskReviewOutcome; onDism
       <Text style={styles.savedTitle}>{outcome.title}</Text>
       {outcome.detail ? <Text style={styles.savedDetail}>{outcome.detail}</Text> : null}
       <View style={styles.row}>
-        {/* navigate goes back to the open tabs rather than stacking a second copy. */}
         <Chip label="View tasks" onPress={() => router.navigate('/tasks')} />
         <Chip label="OK" onPress={onDismiss} />
       </View>

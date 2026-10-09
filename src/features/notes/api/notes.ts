@@ -1,7 +1,7 @@
 import { getDatabase } from '@/lib/db';
 
 import { isEmptyNote } from '../note-rules';
-import type { JournalEntry, Note, NoteContent, NoteSummary } from '../types';
+import type { JournalEntry, Note, NoteContent } from '../types';
 
 type NoteRow = {
   id: number;
@@ -10,11 +10,6 @@ type NoteRow = {
   created_at: number;
   updated_at: number;
 };
-
-type NoteSummaryRow = Pick<NoteRow, 'id' | 'title' | 'updated_at'> & { excerpt: string };
-
-// Enough of the body to fill the list's two-line preview.
-const EXCERPT_LENGTH = 300;
 
 const listeners = new Set<() => void>();
 
@@ -31,27 +26,9 @@ function notifyNotesChanged() {
 }
 
 /**
- * Every note, last edited first, with only the start of each body. Notes are
- * personal and the rows are small, so the list loads at once rather than in pages.
- */
-export async function getNoteSummaries(): Promise<NoteSummary[]> {
-  const db = await getDatabase();
-  const rows = await db.getAllAsync<NoteSummaryRow>(
-    `SELECT id, title, substr(body, 1, ?) AS excerpt, updated_at
-     FROM notes ORDER BY updated_at DESC, id DESC`,
-    EXCERPT_LENGTH,
-  );
-  return rows.map((row) => ({
-    id: row.id,
-    title: row.title,
-    excerpt: row.excerpt,
-    updatedAt: row.updated_at,
-  }));
-}
-
-/**
  * Every note as a journal entry, newest written first, with its whole body so the
- * journal can search it. Like the notes list, it loads at once.
+ * journal can search it. Notes are personal and few, so it loads at once rather
+ * than in pages.
  */
 export async function getJournalEntries(): Promise<JournalEntry[]> {
   const db = await getDatabase();
@@ -93,7 +70,7 @@ export async function createNote(content: NoteContent): Promise<Note> {
 
 /**
  * Stores new content for a note and returns its new last-edited time. Returns
- * null when the content is unchanged, so a note never moves up the list just
+ * null when the content is unchanged, so a note never shows as edited just
  * because it was opened.
  */
 export async function updateNote(id: number, content: NoteContent): Promise<number | null> {

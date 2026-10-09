@@ -90,7 +90,7 @@ export function resolveCommand(
 }
 
 // The entry keeps the user's words and is shown back before it's saved. It has no
-// title, so the journal and the notes list head it with its first line.
+// title, so the journal heads it with its first line.
 function resolveAddNote(command: Extract<Command, { kind: 'add-note' }>): Resolution {
   const entry = cleanEntry(command.text);
   if (!entry) return askFor(command, 'text', 'What should I write in your journal?', []);

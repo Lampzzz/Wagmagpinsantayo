@@ -22,6 +22,7 @@ const REACTION_MS = 3000;
 const MAX_RECORDING_MS = 30_000;
 
 const HEARD_NOTHING = "Hmm, I didn't catch that. Tap the mic and try again.";
+const STARTING_OVER = 'Starting over.';
 const VOICE_NEEDS_SETUP =
   'To hear you, I need the on-device AI first. You can type to me in the meantime.';
 const VOICE_UNSUPPORTED = "Voice isn't available on this phone, but you can type to me.";
@@ -48,7 +49,7 @@ export type TalkStage = 'idle' | 'starting' | 'listening' | 'transcribing' | 'th
  */
 export function useTalkToPinsan() {
   const { busy, availability, send, pick, confirm, clearQuestion } = useAssistant();
-  const { state: voice, start, stop, reset } = useDictation();
+  const { state: voice, start, stop, discard, reset } = useDictation();
   const { setMood } = useMascot();
   const [bubble, setBubble] = useState<BubbleContent | null>(null);
   // The final words of a spoken request, kept on the paper note until Pinsan answers.
@@ -214,11 +215,11 @@ export function useTalkToPinsan() {
       if (!focused.current) return;
       await start();
       // Left while the mic switched on: switch it off again, and drop what it heard.
-      if (!focused.current) await stop();
+      if (!focused.current) discard();
     } finally {
       startingMic.current = false;
     }
-  }, [addAside, asked, attend, availability, clearVoiceError, showNote, start, stop]);
+  }, [addAside, asked, attend, availability, clearVoiceError, discard, showNote, start]);
 
   const finishListening = useCallback(async () => {
     answering.current = true;
@@ -257,10 +258,26 @@ export function useTalkToPinsan() {
   const cancelListening = useCallback(() => {
     // Too late: the words are on their way to Pinsan.
     if (voice.phase === 'transcribing') return;
-    stop().catch(() => undefined);
+    discard();
     if (asked) attend();
     else relax();
-  }, [asked, attend, relax, stop, voice.phase]);
+  }, [asked, attend, discard, relax, voice.phase]);
+
+  /** "Start over" on the paper note: the words so far go, and Pinsan listens again. */
+  const startOver = useCallback(async () => {
+    // Still switching on, or the words are already on their way: nothing to start over.
+    if (startingMic.current || !discard()) return;
+    AccessibilityInfo.announceForAccessibility(STARTING_OVER);
+    startingMic.current = true;
+    try {
+      // In the same tap as discard(), so Home goes straight from listening to "Getting ready…".
+      await start();
+      // Left while the mic switched on again: switch it off.
+      if (!focused.current) discard();
+    } finally {
+      startingMic.current = false;
+    }
+  }, [discard, start]);
 
   // Stops a forgotten mic.
   const listening = voice.phase === 'listening';
@@ -378,10 +395,8 @@ export function useTalkToPinsan() {
   const leave = useRef(() => {});
   useEffect(() => {
     leave.current = () => {
-      if (voice.phase === 'listening' || voice.phase === 'loading') {
-        // Throw the recording away: nobody is there to see the reply.
-        stop().catch(() => undefined);
-      }
+      // Throw the recording away: nobody is there to see the reply.
+      discard();
       setComposerOpen(false);
       if (!answering.current) relax();
     };
@@ -423,6 +438,7 @@ export function useTalkToPinsan() {
     draft,
     setDraft,
     toggleMic,
+    startOver,
     openComposer,
     closeComposer,
     submitDraft,

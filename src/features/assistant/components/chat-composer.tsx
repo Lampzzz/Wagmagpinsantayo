@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, TextInput, View } from 'react-native';
 
+import { START_OVER_HEIGHT, StartOverChip } from '@/components/common/start-over-chip';
 import { Icon } from '@/components/ui/icon';
 import { IconButton } from '@/components/ui/icon-button';
 import { Notice } from '@/components/ui/notice';
@@ -28,7 +29,7 @@ type ChatComposerProps = {
 export function ChatComposer({ busy, voice, onSend }: ChatComposerProps) {
   const [text, setText] = useState('');
   const [heardNothing, setHeardNothing] = useState(false);
-  const { state, start, stop, reset } = useDictation();
+  const { state, start, stop, discard, reset } = useDictation();
   const listening = state.phase === 'listening';
   const recording = listening || state.phase === 'loading' || state.phase === 'transcribing';
   // While a reply is on its way only a call for help can be sent: it can't wait.
@@ -65,6 +66,11 @@ export function ChatComposer({ busy, voice, onSend }: ChatComposerProps) {
     await start();
   };
 
+  // The words so far go, and it listens again. Too late once stop() has taken them.
+  const startOver = async () => {
+    if (discard()) await start();
+  };
+
   useEffect(() => {
     if (!listening) return;
     const timer = setTimeout(finishRecording, MAX_RECORDING_MS);
@@ -73,7 +79,7 @@ export function ChatComposer({ busy, voice, onSend }: ChatComposerProps) {
 
   return (
     <View style={styles.container}>
-      <VoiceStatus state={state} heardNothing={heardNothing} />
+      <VoiceStatus state={state} heardNothing={heardNothing} onStartOver={startOver} />
       <View style={styles.row}>
         <TextInput
           value={text}
@@ -119,14 +125,24 @@ export function ChatComposer({ busy, voice, onSend }: ChatComposerProps) {
   );
 }
 
-function VoiceStatus({ state, heardNothing }: { state: DictationState; heardNothing: boolean }) {
+type VoiceStatusProps = {
+  state: DictationState;
+  heardNothing: boolean;
+  onStartOver: () => void;
+};
+
+function VoiceStatus({ state, heardNothing, onStartOver }: VoiceStatusProps) {
   switch (state.phase) {
     case 'loading':
       return <Working text="Getting ready…" />;
     case 'listening':
       return (
         <View style={styles.transcript} accessibilityLiveRegion="polite">
-          <Text style={styles.label}>Listening… tap stop when you&apos;re done</Text>
+          <View style={styles.labelRow}>
+            <Text style={styles.label}>Listening… tap stop when you&apos;re done</Text>
+            {/* Once there are words to clear. */}
+            {state.transcript !== '' && <StartOverChip onPress={onStartOver} />}
+          </View>
           <Text style={styles.transcriptText}>{state.transcript || '…'}</Text>
         </View>
       );
@@ -188,7 +204,15 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     ...SHADOWS.card,
   },
+  // As tall as "Start over" even without it, so the card doesn't jump when it comes.
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    minHeight: START_OVER_HEIGHT,
+  },
   label: {
+    flex: 1,
     fontFamily: FONTS.bodyBold,
     fontSize: FONT_SIZES.caption,
     color: COLORS.textMuted,

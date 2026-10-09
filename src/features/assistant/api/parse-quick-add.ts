@@ -160,6 +160,12 @@ const EVENT_TITLE = new RegExp(
 );
 
 const TODO_LEAD = /^(?:(?:don't|do not) forget to\s+|remember to\s+|(?:to-?do|task)\s*[:–-]\s*)/i;
+// How people say a to-do out loud: "I need to call the dentist", "I'm planning to visit
+// Lola on Saturday", "I have a meeting with Carlo at 10".
+const SPOKEN_LEAD =
+  /^(?:i(?:'m|'ve|'ll| am| have| will)?\s+(?:really\s+|still\s+|also\s+|probably\s+)*(?:need to|have to|got to|gotta|must|should|going to|gonna|planning to|plan to|want to|wanna)\s+(?:probably\s+)?|(?:i have|i've got|i got|there's|there is)\s+an?\s+)/i;
+// "Thank you for the help" is small talk; "Thank Ana for the gift" is a to-do.
+const THANKS = /^(?:thank you|thanks)\b/i;
 const QUESTION_START =
   /^(?:what|when|where|who|whose|why|how|which|is|are|am|was|were|do|does|did|can|could|would|will|should|shall)\b/i;
 // About saved items ("finish my React task", "take it off my list").
@@ -181,8 +187,8 @@ const MAX_TITLE_WORDS = 12;
 export function parseQuickAdd(text: string): Command | null {
   // A question is never a to-do: "Pay the bill tomorrow?"
   if (/\?\s*$/.test(text)) return null;
-  const sentence = tidySentence(text).replace(TODO_LEAD, '');
-  if (!sentence || QUESTION_START.test(sentence)) return null;
+  const sentence = tidySentence(text).replace(TODO_LEAD, '').replace(SPOKEN_LEAD, '');
+  if (!sentence || QUESTION_START.test(sentence) || THANKS.test(sentence)) return null;
 
   const { rest: undated, priority: endPriority } = splitTrailingPriority(sentence);
   const split = splitWhen(undated);

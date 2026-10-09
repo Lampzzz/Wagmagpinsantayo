@@ -232,7 +232,7 @@ function EmptyReminders() {
         No reminders yet
       </Text>
       <Text style={styles.hint}>
-        Tap New reminder, or ask the Assistant: &quot;Remind me in 10 minutes to stretch&quot;.
+        Tap New reminder, or ask Pinsan: &quot;Remind me in 10 minutes to stretch&quot;.
       </Text>
     </View>
   );

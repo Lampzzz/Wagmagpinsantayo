@@ -171,7 +171,7 @@ function EmptyTasks() {
         No tasks yet
       </Text>
       <Text style={styles.hint}>
-        Tap New task, or ask the Assistant: &quot;Create a task to call the dentist&quot;.
+        Tap New task, or ask Pinsan: &quot;Create a task to call the dentist&quot;.
       </Text>
     </View>
   );

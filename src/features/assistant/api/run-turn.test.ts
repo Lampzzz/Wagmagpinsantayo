@@ -7,6 +7,7 @@ import type {
   AssistantReply,
   Command,
   ConversationState,
+  DataAction,
   Outcome,
   TurnInput,
 } from '../types';
@@ -23,7 +24,7 @@ function endOf(year: number, month: number, day: number) {
 // Monday, Oct 5, 2026, 10:00 AM.
 const NOW = at(2026, 10, 5, 10);
 
-/** An in-memory stand-in for the task and reminder services. */
+/** An in-memory stand-in for the task and reminder services and the phone's dialer. */
 function createWorld(options: { model?: AssistantDeps['interpretWithModel']; now?: number } = {}) {
   const now = options.now ?? NOW;
   const tasks: Task[] = [];
@@ -31,8 +32,11 @@ function createWorld(options: { model?: AssistantDeps['interpretWithModel']; now
   let nextId = 1;
   let alert: AlertOutcome = 'scheduled';
   let failNext: Action['kind'] | 'any' | null = null;
+  let dialerOpens = true;
+  let databaseWorks = true;
+  const callEmergency = jest.fn(async () => dialerOpens);
 
-  const execute = async (action: Action): Promise<Outcome> => {
+  const execute = async (action: DataAction): Promise<Outcome> => {
     if (failNext === 'any' || failNext === action.kind) {
       failNext = null;
       throw new Error('Disk full');
@@ -111,11 +115,15 @@ function createWorld(options: { model?: AssistantDeps['interpretWithModel']; now
   const deps: AssistantDeps = {
     interpretWithModel: options.model ?? null,
     canSetUpModel: true,
-    loadSnapshot: async () => ({
-      tasks: tasks.map((task) => ({ ...task })),
-      reminders: reminders.map((reminder) => ({ ...reminder })),
-    }),
+    loadSnapshot: async () => {
+      if (!databaseWorks) throw new Error('Database is locked');
+      return {
+        tasks: tasks.map((task) => ({ ...task })),
+        reminders: reminders.map((reminder) => ({ ...reminder })),
+      };
+    },
     execute,
+    callEmergency,
     now: () => now,
   };
 
@@ -140,6 +148,16 @@ function createWorld(options: { model?: AssistantDeps['interpretWithModel']; now
     /** Makes the next action fail, or the next one of this kind. */
     failNextAction(kind: Action['kind'] | 'any' = 'any') {
       failNext = kind;
+    },
+    /** The phone's dialer, as a mock. */
+    callEmergency,
+    /** Makes the dialer fail to open, as on a tablet with no phone app. */
+    breakDialer() {
+      dialerOpens = false;
+    },
+    /** Makes loading saved items throw. */
+    breakDatabase() {
+      databaseWorks = false;
     },
   };
 }
@@ -677,5 +695,113 @@ describe('runTurn: Smart Quick Add', () => {
     expect(world.tasks).toHaveLength(1);
     expect(world.reminders).toHaveLength(1);
     expect(world.reminders[0].taskId).toBeNull();
+  });
+});
+
+describe('runTurn: emergency call', () => {
+  it('asks first, then opens the dialer with 911 on "Call 911"', async () => {
+    const world = createWorld();
+
+    const question = await world.send('Call 911');
+    expect(question.text).toBe('Call emergency services (911)?');
+    expect(question.speech).toBe('Call emergency services (9 1 1)?');
+    expect(question.question).toMatchObject({
+      kind: 'confirm',
+      action: { kind: 'call-emergency', number: '911' },
+      yesLabel: 'Call 911',
+      noLabel: 'Cancel',
+    });
+    expect(question.isError).toBe(false);
+    expect(world.callEmergency).not.toHaveBeenCalled();
+
+    const reply = await world.send({ kind: 'confirm', yes: true });
+    expect(world.callEmergency).toHaveBeenCalledTimes(1);
+    expect(reply.text).toBe("Opening your phone's dialer with 911.");
+    expect(reply.speech).toBe("Opening your phone's dialer with 9 1 1.");
+    expect(reply.isError).toBe(false);
+    expect(reply.question).toBeNull();
+    expect(world.state.pending).toBeNull();
+  });
+
+  it('never opens the dialer when the user taps Cancel', async () => {
+    const world = createWorld();
+    await world.send('I need help');
+    const reply = await world.send({ kind: 'confirm', yes: false });
+    expect(reply.text).toBe("Okay, I won't call.");
+    expect(reply.isError).toBe(false);
+    expect(world.callEmergency).not.toHaveBeenCalled();
+    expect(world.state.pending).toBeNull();
+  });
+
+  it.each([
+    ['no', "Okay, I won't call."],
+    ['Cancel.', 'Okay, never mind.'],
+    ['never mind', 'Okay, never mind.'],
+  ])('takes a typed or spoken %p as a no', async (answer, text) => {
+    const world = createWorld();
+    await world.send('Emergency!');
+    expect((await world.send(answer)).text).toBe(text);
+    expect(world.callEmergency).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    'yes',
+    'Call 911',
+    'Yes, call.',
+    'Call an ambulance!',
+    'do it',
+    'Help!',
+    'Please, hurry up!',
+  ])('takes a typed or spoken %p as a yes', async (answer) => {
+    const world = createWorld();
+    await world.send('Emergency!');
+    expect((await world.send(answer)).text).toBe("Opening your phone's dialer with 911.");
+    expect(world.callEmergency).toHaveBeenCalledTimes(1);
+  });
+
+  it('says how to dial by hand when the dialer does not open', async () => {
+    const world = createWorld();
+    world.breakDialer();
+    await world.send('Call an ambulance');
+    const reply = await world.send({ kind: 'confirm', yes: true });
+    expect(world.callEmergency).toHaveBeenCalledTimes(1);
+    expect(reply.text).toBe("I couldn't open the dialer. Dial 911 from your phone app.");
+    expect(reply.speech).toBe("I couldn't open the dialer. Dial 9 1 1 from your phone app.");
+    expect(reply.isError).toBe(true);
+    expect(world.state.pending).toBeNull();
+  });
+
+  it('asks right away even while another question is waiting', async () => {
+    const world = createWorld();
+    expect((await world.send('Remind me at 5')).text).toBe('What should I remind you about?');
+    const reply = await world.send('call 911');
+    expect(reply.text).toBe('Call emergency services (911)?');
+    expect(reply.question).toMatchObject({ kind: 'confirm', yesLabel: 'Call 911' });
+    expect(world.reminders).toHaveLength(0);
+  });
+
+  it('still works when saved items cannot be read', async () => {
+    const world = createWorld();
+    world.breakDatabase();
+    expect((await world.send('Call the police')).text).toBe('Call emergency services (911)?');
+    expect((await world.send('yes')).text).toBe("Opening your phone's dialer with 911.");
+  });
+
+  it('never asks the model about a call for help', async () => {
+    const model = jest.fn(async (): Promise<Command[]> => []);
+    const world = createWorld({ model });
+    await world.send('Call an ambulance');
+    expect(model).not.toHaveBeenCalled();
+  });
+
+  it('leaves to-dos that mention emergencies on their usual paths', async () => {
+    const world = createWorld();
+    expect((await world.send('Create a task to buy an emergency kit')).text).toBe(
+      'Added the task "Buy an emergency kit".',
+    );
+    expect((await world.send('Remind me to update my emergency contacts')).text).toBe(
+      'When should I remind you?',
+    );
+    expect(world.callEmergency).not.toHaveBeenCalled();
   });
 });

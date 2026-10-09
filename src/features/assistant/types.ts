@@ -48,7 +48,9 @@ export type Command =
       priority?: TaskPriority;
       notes?: string;
     } & Target)
-  | ({ kind: 'edit-reminder'; title?: string; when?: string } & Target);
+  | ({ kind: 'edit-reminder'; title?: string; when?: string } & Target)
+  /** "Call 911", "I need help". Only code reads these phrases, never the model. */
+  | { kind: 'call-emergency' };
 
 export type ClosedReminderStatus = 'completed' | 'dismissed' | 'cancelled';
 
@@ -62,7 +64,15 @@ export type Action =
   | { kind: 'create-reminder'; reminder: NewReminder }
   | { kind: 'update-reminder'; reminder: Reminder; changes: ReminderChanges }
   | { kind: 'close-reminder'; reminder: Reminder; status: ClosedReminderStatus }
-  | { kind: 'delete-reminder'; reminder: Reminder };
+  | { kind: 'delete-reminder'; reminder: Reminder }
+  /**
+   * Opens the phone's dialer with `number` filled in; the user still taps Call. It runs
+   * only after the user says yes, through `AssistantDeps.callEmergency`.
+   */
+  | { kind: 'call-emergency'; number: string };
+
+/** The actions `AssistantDeps.execute` runs: everything but the emergency call. */
+export type DataAction = Exclude<Action, { kind: 'call-emergency' }>;
 
 /** What running an action did. */
 export type Outcome =
@@ -71,7 +81,8 @@ export type Outcome =
   | { kind: 'reminder-saved'; reminder: Reminder; alert: AlertOutcome }
   /** `alertCleared` is false when the pending alert couldn't be cancelled. */
   | { kind: 'reminder-closed'; reminder: Reminder; alertCleared: boolean }
-  | { kind: 'reminder-deleted'; alertCleared: boolean };
+  | { kind: 'reminder-deleted'; alertCleared: boolean }
+  | { kind: 'dialer-opened'; number: string };
 
 /** Everything the assistant matches against, loaded fresh for each request. */
 export type Snapshot = { tasks: Task[]; reminders: Reminder[] };
@@ -151,6 +162,11 @@ export type AssistantDeps = {
   /** True when the model isn't downloaded yet but this phone could run it. */
   canSetUpModel?: boolean;
   loadSnapshot: () => Promise<Snapshot>;
-  execute: (action: Action) => Promise<Outcome>;
+  execute: (action: DataAction) => Promise<Outcome>;
+  /**
+   * Opens the phone's dialer with the emergency number filled in, and says whether it
+   * opened. It never dials by itself.
+   */
+  callEmergency: () => Promise<boolean>;
   now: () => number;
 };

@@ -1,5 +1,6 @@
 import type { Reminder } from '@/features/reminders';
 import type { Task, TaskChanges } from '@/features/tasks';
+import { EMERGENCY_NUMBER } from '@/lib/phone';
 import { capitalize } from '@/utils/capitalize';
 import { formatTime, formatWhen } from '@/utils/format-when';
 import { parseWhen } from '@/utils/parse-when';
@@ -77,9 +78,25 @@ export function resolveCommand(
       return listTasks(command, snapshot.tasks, context.now);
     case 'list-reminders':
       return listReminders(command, snapshot.reminders, context.now);
+    case 'call-emergency':
+      return confirmEmergencyCall();
     default:
       return resolveTargeted(command, snapshot, context);
   }
+}
+
+// Never dials by itself: the user says yes here, then taps Call in the dialer.
+function confirmEmergencyCall(): Resolution {
+  return {
+    kind: 'ask',
+    question: {
+      kind: 'confirm',
+      prompt: `Call emergency services (${EMERGENCY_NUMBER})?`,
+      action: { kind: 'call-emergency', number: EMERGENCY_NUMBER },
+      yesLabel: `Call ${EMERGENCY_NUMBER}`,
+      noLabel: 'Cancel',
+    },
+  };
 }
 
 /** Tidies a title the user said: "to call mom." → "Call mom". */

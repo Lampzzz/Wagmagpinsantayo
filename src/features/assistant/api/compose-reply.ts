@@ -64,7 +64,7 @@ export function composeReply({ steps, question, preface = [], now }: ReplyParts)
         lines.push(same(skippedText(step.action)));
         break;
       case 'failed':
-        lines.push(same(`Something went wrong, so I couldn't ${actionWords(step.action)}.`));
+        lines.push(failedLine(step.action));
         break;
       case 'not-attempted':
         notAttempted.push(step.command);
@@ -74,7 +74,7 @@ export function composeReply({ steps, question, preface = [], now }: ReplyParts)
   if (notAttempted.length > 0) {
     lines.push(same(`I didn't get to: ${notAttempted.map(commandWords).join('; ')}.`));
   }
-  if (question) lines.push(same(question.prompt));
+  if (question) lines.push(questionLine(question));
 
   const onlyTrouble = steps.every(
     (step) => step.kind === 'problem' || step.kind === 'failed' || step.kind === 'not-attempted',
@@ -155,7 +155,32 @@ function ranLine(step: Extract<Step, { kind: 'ran' }>, now: number): Line {
       return same(
         `Deleted the reminder "${titleOf(action)}".${outcome.alertCleared ? '' : ' Its alert may still go off.'}`,
       );
+    case 'dialer-opened':
+      return withNumber(`Opening your phone's dialer with ${outcome.number}.`, outcome.number);
   }
+}
+
+// A calm way out: dialing by hand always works.
+function failedLine(action: Action): Line {
+  if (action.kind === 'call-emergency') {
+    return withNumber(
+      `I couldn't open the dialer. Dial ${action.number} from your phone app.`,
+      action.number,
+    );
+  }
+  return same(`Something went wrong, so I couldn't ${actionWords(action)}.`);
+}
+
+function questionLine(question: Question): Line {
+  if (question.kind === 'confirm' && question.action.kind === 'call-emergency') {
+    return withNumber(question.prompt, question.action.number);
+  }
+  return same(question.prompt);
+}
+
+// Read aloud digit by digit: "9 1 1", never "nine hundred eleven".
+function withNumber(text: string, number: string): Line {
+  return { text, speech: text.split(number).join(number.split('').join(' ')) };
 }
 
 function taskSavedText(action: Action, task: Task, stillOn: readonly Reminder[], now: number) {
@@ -372,6 +397,8 @@ function skippedText(action: Action): string {
     case 'delete-task':
     case 'delete-reminder':
       return `Okay, I kept "${titleOf(action)}".`;
+    case 'call-emergency':
+      return "Okay, I won't call.";
     default:
       return `Okay, I left "${titleOf(action)}" as it was.`;
   }
@@ -400,6 +427,8 @@ function actionWords(action: Action): string {
           : `cancel ${title}`;
     case 'delete-reminder':
       return `delete the reminder ${title}`;
+    case 'call-emergency':
+      return 'open the dialer';
   }
 }
 
@@ -428,6 +457,8 @@ function commandWords(command: Command): string {
     case 'edit-task':
     case 'edit-reminder':
       return `change "${command.target}"`;
+    case 'call-emergency':
+      return 'call emergency services';
   }
 }
 
@@ -438,6 +469,8 @@ function titleOf(action: Action): string {
     case 'set-task-done':
     case 'delete-task':
       return action.task.title;
+    case 'call-emergency':
+      return 'emergency services';
     default:
       return action.reminder.title;
   }

@@ -33,6 +33,8 @@ export type BubbleContent = {
   reply: AssistantReply;
   /** A line of Pinsan's own under a question that still waits, such as "I didn't catch that". */
   aside?: string;
+  /** What a Save just made, such as a task and its reminder: it fades like any done reply. */
+  saved?: boolean;
 };
 
 /** What's happening between your words and Pinsan's answer. */
@@ -127,8 +129,8 @@ export function useTalkToPinsan() {
     if (voiceError !== null) reset();
   }, [reset, voiceError]);
 
-  const show = useCallback((reply: AssistantReply) => {
-    setBubble({ key: nextKey.current++, reply });
+  const show = useCallback((reply: AssistantReply, saved = false) => {
+    setBubble({ key: nextKey.current++, reply, saved });
   }, []);
 
   /** A line of Pinsan's own. The assistant announces its replies; this does the same. */
@@ -154,9 +156,9 @@ export function useTalkToPinsan() {
    * or `mood`. While a question waits for its answer, he keeps listening, close up.
    */
   const react = useCallback(
-    (reply: AssistantReply, mood?: MascotMood) => {
+    (reply: AssistantReply, mood?: MascotMood, saved = false) => {
       answering.current = false;
-      show(reply);
+      show(reply, saved);
       if (reply.question) {
         attend();
         return;
@@ -169,7 +171,7 @@ export function useTalkToPinsan() {
 
   /** Sends one request or answer through the assistant while Pinsan thinks. */
   const answerWith = useCallback(
-    async (turn: () => Promise<AssistantReply | null>, mood?: MascotMood) => {
+    async (turn: () => Promise<AssistantReply | null>, mood?: MascotMood, saved = false) => {
       answering.current = true;
       clearVoiceError();
       cancelRelease();
@@ -179,7 +181,7 @@ export function useTalkToPinsan() {
       setMood('thinking');
       const reply = await turn();
       // Null: another request was still being answered, and its reply sets the mood.
-      if (reply) react(reply, mood);
+      if (reply) react(reply, mood, saved);
     },
     [cancelRelease, clearVoiceError, react, setMood],
   );
@@ -323,7 +325,7 @@ export function useTalkToPinsan() {
   const answerConfirm = useCallback(
     // No hop for "Cancel": nothing was saved.
     (yes: boolean, shown: string) =>
-      answerWith(() => confirm(yes, shown), yes ? undefined : 'idle'),
+      answerWith(() => confirm(yes, shown), yes ? undefined : 'idle', yes),
     [answerWith, confirm],
   );
   const answerFill = useCallback(
@@ -356,7 +358,12 @@ export function useTalkToPinsan() {
   // A reply with nothing left to do fades on its own, a few seconds after the camera glides
   // back. Anything new (a request, the mic, the text box, closing it) calls that off.
   useEffect(() => {
-    if (bubble === null || composerOpen || stage !== 'idle' || !hidesOnItsOwn(bubble.reply)) {
+    if (
+      bubble === null ||
+      composerOpen ||
+      stage !== 'idle' ||
+      !hidesOnItsOwn(bubble.reply, { saved: bubble.saved })
+    ) {
       return;
     }
     const timer = setTimeout(async () => {

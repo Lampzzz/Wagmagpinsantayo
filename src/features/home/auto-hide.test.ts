@@ -49,4 +49,10 @@ describe('hidesOnItsOwn', () => {
   it('keeps a list, to read and tap', () => {
     expect(hidesOnItsOwn(reply({ items: [ITEM, { ...ITEM, id: 2 }] }))).toBe(false);
   });
+
+  it('lets what a Save made go, even a task and its reminder', () => {
+    const reminder: Item = { ...ITEM, entity: 'reminder', id: 7 };
+    expect(hidesOnItsOwn(reply({ items: [ITEM, reminder] }), { saved: true })).toBe(true);
+    expect(hidesOnItsOwn(reply({ isError: true }), { saved: true })).toBe(false);
+  });
 });

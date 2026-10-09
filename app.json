@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Couz",
+    "name": "Couz AI",
     "slug": "wagmagpinsantayo",
     "scheme": "wagmagpinsantayo",
     "version": "1.0.0",
@@ -39,7 +39,7 @@
       [
         "react-native-audio-api",
         {
-          "iosMicrophonePermission": "Couz uses your microphone to turn what you say into notes, tasks and reminders. Your voice is processed on your phone and never uploaded.",
+          "iosMicrophonePermission": "Couz AI uses your microphone to turn what you say into notes, tasks and reminders. Your voice is processed on your phone and never uploaded.",
           "iosBackgroundMode": false,
           "androidForegroundService": false,
           "androidPermissions": ["android.permission.RECORD_AUDIO"],

@@ -21,7 +21,9 @@ const MAX_SPOKEN_NAMES = 3;
 // Reminders closer than this also say how long until they go off: "(in 5 minutes)".
 const SOON_MS = 24 * 60 * 60 * 1000;
 
-const EXAMPLES = 'Try "Remind me in 10 minutes to stretch" or "What tasks do I have today?"';
+// Each one is read by the rules or Quick Add, so it works before the AI download.
+export const EXAMPLES =
+  'Try "Pay the electric bill tomorrow at 5 PM", "Remind me tomorrow at 9 to call Ana" or "What tasks do I have today?"';
 
 type Line = { text: string; speech: string };
 

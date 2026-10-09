@@ -1,7 +1,7 @@
 import type { Reminder } from '@/features/reminders';
 import type { Task, TaskChanges } from '@/features/tasks';
 import { capitalize } from '@/utils/capitalize';
-import { formatWhen } from '@/utils/format-when';
+import { formatTime, formatWhen } from '@/utils/format-when';
 import { parseWhen } from '@/utils/parse-when';
 import { dayWindow, resolveWhen, type WhenPurpose } from '@/utils/resolve-when';
 
@@ -35,6 +35,7 @@ export type ResolveContext = {
 };
 
 type TargetCommand = Extract<Command, { target: string }>;
+type CreateTask = Extract<Action, { kind: 'create-task' }>;
 type Item = Task | Reminder;
 
 const MAX_OPTIONS = 4;
@@ -97,21 +98,80 @@ function resolveAddTask(command: Extract<Command, { kind: 'add-task' }>, now: nu
   const title = cleanTitle(command.title);
   if (!title) return askFor(command, 'title', "What's the task?", []);
 
-  const build = (dueAt: number | null, dueHasTime: boolean): Action => ({
-    kind: 'create-task',
-    task: {
-      title,
-      description: command.notes?.trim() ?? '',
-      priority: command.priority ?? 'normal',
-      dueAt,
-      dueHasTime,
-    },
-  });
-  if (!command.when || NO_DATE.test(command.when.trim())) return ready(build(null, false));
+  const build = (dueAt: number | null, dueHasTime: boolean): CreateTask => {
+    const action: CreateTask = {
+      kind: 'create-task',
+      task: {
+        title,
+        description: command.notes?.trim() ?? '',
+        priority: command.priority ?? 'normal',
+        dueAt,
+        dueHasTime,
+      },
+    };
+    const remindAt =
+      command.quickAdd && dueAt !== null && command.when
+        ? quickAddReminderTime(dueAt, dueHasTime, command.when, now)
+        : null;
+    return remindAt === null ? action : { ...action, remindAt };
+  };
+  // Quick Add shows the task back for a yes; other wordings save it right away.
+  const finish = (action: CreateTask): Resolution =>
+    command.quickAdd ? proposeTask(action, now, false) : ready(action);
+
+  if (!command.when || NO_DATE.test(command.when.trim())) return finish(build(null, false));
   const time = readWhen(command, command.when, 'task', now, null, (at, hasTime) =>
     build(at, hasTime),
   );
-  return 'kind' in time ? time : ready(build(time.at, time.hasTime));
+  if (!('kind' in time)) return finish(build(time.at, time.hasTime));
+  // The time has passed today: the offer of tomorrow becomes the proposal.
+  if (
+    command.quickAdd &&
+    time.kind === 'ask' &&
+    time.question.kind === 'confirm' &&
+    time.question.action.kind === 'create-task'
+  ) {
+    return proposeTask(time.question.action, now, true);
+  }
+  return time;
+}
+
+/**
+ * Quick Add reminds at the due time. A date said without a time reminds at the
+ * usual reminder hour that day (9:00 AM), unless that has already passed.
+ */
+function quickAddReminderTime(dueAt: number, hasTime: boolean, when: string, now: number) {
+  if (hasTime) return dueAt;
+  const parts = parseWhen(when, { loose: true });
+  const resolved = parts && resolveWhen(parts, { now, purpose: 'reminder' });
+  return resolved?.kind === 'ok' ? resolved.at : null;
+}
+
+// "Add "Pay electric bill" for tomorrow at 5:00 PM? I'll remind you then."
+function proposeTask(action: CreateTask, now: number, timePassed: boolean): Resolution {
+  const { title, dueAt = null, dueHasTime = false } = action.task;
+  let prompt: string;
+  if (dueAt === null) {
+    prompt = `Add "${title}" with no due date? I won't set a reminder.`;
+  } else if (dueHasTime) {
+    prompt = `Add "${title}" for ${formatWhen(dueAt, true, now)}? I'll remind you then.`;
+  } else {
+    const reminder =
+      action.remindAt === undefined
+        ? "It's already past 9:00 AM, so I won't set a reminder."
+        : `I'll remind you at ${formatTime(action.remindAt)} that day.`;
+    prompt = `Add "${title}" for ${formatWhen(dueAt, false, now)}? ${reminder}`;
+  }
+  return {
+    kind: 'ask',
+    question: {
+      kind: 'confirm',
+      prompt: timePassed ? `That time has already passed today. ${prompt}` : prompt,
+      action,
+      yesLabel: timePassed ? 'Yes, tomorrow' : 'Save',
+      noLabel: timePassed ? 'No' : 'Cancel',
+    },
+  };
 }
 
 function resolveAddReminder(

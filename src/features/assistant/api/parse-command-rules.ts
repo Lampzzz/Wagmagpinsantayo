@@ -145,13 +145,7 @@ const LEADING_FILLER =
  * Returns null unless every part of the sentence matches, so the model handles the rest.
  */
 export function parseCommandRules(text: string): Command[] | null {
-  const sentence = text
-    .replace(/\s+/g, ' ')
-    .trim()
-    .replace(/[.!?]+$/, '')
-    .replace(POLITE_START, '')
-    .replace(POLITE_END, '')
-    .trim();
+  const sentence = tidySentence(text);
   if (!sentence) return null;
 
   const commands: Command[] = [];
@@ -161,6 +155,24 @@ export function parseCommandRules(text: string): Command[] | null {
     commands.push(command);
   }
   return commands.length > 0 ? commands : null;
+}
+
+/** Drops end punctuation and polite words: "Hey, can you pay the bill, please?" → "pay the bill". */
+export function tidySentence(text: string): string {
+  return text
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/[.!?]+$/, '')
+    .replace(POLITE_START, '')
+    .replace(POLITE_END, '')
+    .trim();
+}
+
+/** Splits a priority off the end: "call the bank, it's urgent" → "call the bank", high. */
+export function splitTrailingPriority(text: string): { rest: string; priority?: TaskPriority } {
+  const match = TRAILING_PRIORITY.exec(text);
+  if (!match) return { rest: text };
+  return { rest: text.slice(0, match.index).trim(), priority: toPriority(match[1] ?? match[2]) };
 }
 
 function parseClause(clause: string): Command | null {
@@ -207,34 +219,30 @@ function parseAddReminder(clause: string): Command | null {
 }
 
 // Speech-to-text punctuates pauses: "in 5 minutes," → "in 5 minutes".
-function tidyWhen(when: string): string {
+export function tidyWhen(when: string): string {
   return when.replace(/[,;:]+$/, '');
 }
 
 function parseAddTask(clause: string): Command | null {
-  let rest: string;
-  let priorityWord: string | undefined;
+  let opened: string;
+  let openerPriority: string | undefined;
   const opener = TASK_OPENER.exec(clause);
   if (opener) {
-    priorityWord = opener[1];
-    rest = opener[2].trim();
+    openerPriority = opener[1];
+    opened = opener[2].trim();
   } else {
     const listed = ADD_TO_LIST.exec(clause);
     if (!listed) return null;
-    rest = listed[1].trim();
+    opened = listed[1].trim();
   }
 
-  const trailingPriority = TRAILING_PRIORITY.exec(rest);
-  if (trailingPriority) {
-    priorityWord = trailingPriority[1] ?? trailingPriority[2];
-    rest = rest.slice(0, trailingPriority.index).trim();
-  }
+  const { rest, priority } = splitTrailingPriority(opened);
   const trailing = splitTrailingWhen(rest);
   return {
     kind: 'add-task',
     title: trailing ? trailing.rest : rest,
     when: trailing ? tidyWhen(trailing.when) : undefined,
-    priority: priorityWord ? toPriority(priorityWord) : undefined,
+    priority: priority ?? (openerPriority ? toPriority(openerPriority) : undefined),
   };
 }
 

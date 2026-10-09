@@ -49,7 +49,7 @@ Import across folders with `@/` (for example `@/features/auth`, `@/components/ui
 
 ## Done
 
-A task is done when `npm run lint`, `npm run typecheck` and `npm run format:check` all pass.
+A task is done when `npm run lint`, `npm run typecheck`, `npm run format:check` and `npm test` all pass.
 
 ## Skills
 

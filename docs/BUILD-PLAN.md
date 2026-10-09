@@ -45,21 +45,21 @@ the W11 and W12 builders.
 
 ## Status board
 
-| #   | Workstream                                                                           | Status                                       |
-| --- | ------------------------------------------------------------------------------------ | -------------------------------------------- |
-| W1  | Summarize + Extract Tasks                                                            | Merged. Test on a device                     |
-| W2  | Restyle in Pinsan's look                                                             | Merged                                       |
-| W3  | Smart Quick Add                                                                      | Merged. W6 adds the Edit button              |
-| W4  | README, submission answers, pitch and video script                                   | Merged. The team fills the placeholders      |
-| W5  | `focusPinsan()`, `releaseFocus()`, `usePinsanAnchor()`, lighter scene while thinking | Building, ready ~2 AM                        |
-| W6  | Home: mic, live words on a paper note, Pinsan's reply bubble, keyboard input         | Building                                     |
-| W7  | Advice bubble over Pinsan's head                                                     | On hold for the user                         |
-| W8  | Device test: a real AI call with the 3D scene running                                | Emulator checks by 2a; speed needs the phone |
-| W10 | No tab bar: a stack, Home full screen, ☰ side menu, Emergency → dialer              | Building                                     |
-| W11 | Assistant skills: call emergency, "write in my journal", "every day"                 | Building                                     |
-| W12 | Journal by day, every-day reminders (migration 3)                                    | Building                                     |
-| W13 | Conversation history saved by day (migration after W12's)                            | After W6                                     |
-| W9  | Final merge and checks, release APK (~4:30), then push, video, submit                | 2a and 2e, then the user at 5 AM             |
+| #   | Workstream                                                                           | Status                                                                                                                              |
+| --- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| W1  | Summarize + Extract Tasks                                                            | Merged. Test on a device                                                                                                            |
+| W2  | Restyle in Pinsan's look                                                             | Merged                                                                                                                              |
+| W3  | Smart Quick Add                                                                      | Merged. W6 adds the Edit button                                                                                                     |
+| W4  | README, submission answers, pitch and video script                                   | Merged. The team fills the placeholders                                                                                             |
+| W5  | `focusPinsan()`, `releaseFocus()`, `usePinsanAnchor()`, lighter scene while thinking | Merged (53ff549). 2e checks it at 2:00                                                                                              |
+| W6  | Home: mic, live words on a paper note, Pinsan's reply bubble, keyboard input         | Building                                                                                                                            |
+| W7  | Advice bubble over Pinsan's head                                                     | On hold for the user                                                                                                                |
+| W8  | Device test: a real AI call with the 3D scene running                                | Emulator OK at 12:55: Quick Add → task + reminder, restyle, ~31 fps. No models on the emulator (storage 90%). Speed needs the phone |
+| W10 | No tab bar: a stack, Home full screen, ☰ side menu, Emergency → dialer              | Building                                                                                                                            |
+| W11 | Assistant skills: call emergency, "write in my journal", "every day"                 | Building                                                                                                                            |
+| W12 | Journal by day, every-day reminders (migration 3)                                    | Building                                                                                                                            |
+| W13 | Conversation history saved by day (migration after W12's)                            | After W6                                                                                                                            |
+| W9  | Final merge and checks, release APK (~4:30), then push, video, submit                | 2a and 2e, then the user at 5 AM                                                                                                    |
 
 ## File ownership
 

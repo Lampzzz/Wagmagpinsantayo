@@ -25,10 +25,16 @@ const TRANSCRIBE_FAILED = "Couldn't turn your voice into text. Please try again.
  * Records speech with a live transcript. `stop()` resolves with the final text
  * ("" when nothing was heard), or null when it failed and `state` says why. The
  * speech model is out of memory by then, so the text model can run next.
+ *
+ * Stopping while the speech model still loads calls the start off: the mic never
+ * opens, `stop()` resolves with "", and the state goes back to idle once the model
+ * has loaded and been freed.
  */
 export function useDictation() {
   const [state, setState] = useState<DictationState>({ phase: 'idle' });
   const recordingRef = useRef<Recording | null>(null);
+  // Set while start() waits for the speech model; stop() marks it cancelled.
+  const loadingRef = useRef<{ cancelled: boolean } | null>(null);
   const mountedRef = useRef(true);
 
   // Stops the mic, frees the speech model and resolves with the final transcript.
@@ -55,12 +61,19 @@ export function useDictation() {
   }, [finishRecording]);
 
   const start = useCallback(async () => {
-    if (recordingRef.current) return;
+    // A second model loading meanwhile would never be freed, and could open a second mic.
+    if (recordingRef.current || loadingRef.current) return;
+    const loading = { cancelled: false };
+    loadingRef.current = loading;
     setState({ phase: 'loading' });
     try {
-      const stt = await loadSpeechToText();
-      if (!mountedRef.current) {
+      const stt = await loadSpeechToText().finally(() => {
+        loadingRef.current = null;
+      });
+      // Unmounted, or stopped while the model loaded: free it without opening the mic.
+      if (!mountedRef.current || loading.cancelled) {
         stt.dispose();
+        if (mountedRef.current) setState({ phase: 'idle' });
         return;
       }
       const transcript = readTranscript(stt, (text) =>
@@ -82,14 +95,25 @@ export function useDictation() {
       recording.mic = mic;
     } catch (error) {
       await finishRecording().catch(() => undefined);
-      setState({
-        phase: 'error',
-        message: error instanceof MicPermissionError ? MIC_DENIED : START_FAILED,
-      });
+      setState(
+        // Called off already: a model that failed to load is no news.
+        loading.cancelled
+          ? { phase: 'idle' }
+          : {
+              phase: 'error',
+              message: error instanceof MicPermissionError ? MIC_DENIED : START_FAILED,
+            },
+      );
     }
   }, [finishRecording]);
 
   const stop = useCallback(async (): Promise<string | null> => {
+    const loading = loadingRef.current;
+    if (loading) {
+      // Nothing was heard yet: call the start off, before it opens the mic.
+      loading.cancelled = true;
+      return '';
+    }
     if (!recordingRef.current) return null;
     setState((prev) => ({
       phase: 'transcribing',

@@ -1,6 +1,14 @@
 import { router, Stack } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Linking,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 import { readWhenInput, WhenField, type WhenInput } from '@/components/common/when-field';
@@ -20,7 +28,7 @@ import {
   SHADOWS,
   SPACING,
 } from '@/constants/theme';
-import { createReminder, useReminders } from '@/features/reminders';
+import { createReminder, useReminders, type AlertOutcome } from '@/features/reminders';
 import { useNow } from '@/hooks/use-now';
 import { capitalize } from '@/utils/capitalize';
 import { formatWhen } from '@/utils/format-when';
@@ -145,8 +153,25 @@ function TaskForm({ task, draft, onClose }: TaskFormProps) {
       return;
     }
     if (remind && remindAt !== null) {
+      // Worked out again: the time shown can be a minute old, and may have passed since.
+      const at = whenInput.kind === 'ok' ? reminderTime(whenInput, Date.now()) : null;
+      if (at === null) {
+        Alert.alert(
+          'Task saved',
+          "That time has passed, so there won't be a reminder.",
+          [{ text: 'OK', onPress: onClose }],
+          { cancelable: true, onDismiss: onClose },
+        );
+        return;
+      }
       try {
-        await createReminder({ title: created.title, scheduledAt: remindAt, taskId: created.id });
+        const { alert } = await createReminder({
+          title: created.title,
+          scheduledAt: at,
+          taskId: created.id,
+        });
+        explainAlert(alert, onClose);
+        return;
       } catch {
         Alert.alert(
           'The task is saved',
@@ -278,6 +303,36 @@ const REMINDER_HOUR = 9;
 function reminderTime(due: { at: number; hasTime: boolean }, now: number): number | null {
   const at = due.hasTime ? due.at : new Date(due.at).setHours(REMINDER_HOUR, 0, 0, 0);
   return at > now ? at : null;
+}
+
+// Saved either way. Say so when the reminder won't alert, as the reminder editor does, then leave.
+function explainAlert(alert: AlertOutcome, onDone: () => void) {
+  if (alert === 'no-permission') {
+    Alert.alert(
+      'Task saved',
+      "Notifications are off, so its reminder can't alert you. Turn them on in Settings.",
+      [
+        { text: 'Not now', style: 'cancel', onPress: onDone },
+        {
+          text: 'Open settings',
+          onPress: () => {
+            Linking.openSettings();
+            onDone();
+          },
+        },
+      ],
+      { cancelable: true, onDismiss: onDone },
+    );
+  } else if (alert === 'failed') {
+    Alert.alert(
+      'Task saved',
+      "Its reminder couldn't be scheduled to alert you. The app tries again each time you open it.",
+      [{ text: 'OK', onPress: onDone }],
+      { cancelable: true, onDismiss: onDone },
+    );
+  } else {
+    onDone();
+  }
 }
 
 type DueReminderProps = {

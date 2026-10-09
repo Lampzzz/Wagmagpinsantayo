@@ -1,11 +1,12 @@
 import { Link, router } from 'expo-router';
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
   Pressable,
   SectionList,
   StyleSheet,
+  TextInput,
   View,
   type ListRenderItem,
   type SectionListRenderItem,
@@ -13,6 +14,7 @@ import {
 } from 'react-native';
 
 import { Button } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
 import { IconButton } from '@/components/ui/icon-button';
 import { Notice } from '@/components/ui/notice';
 import { Text } from '@/components/ui/text';
@@ -29,7 +31,7 @@ import { useNow } from '@/hooks/use-now';
 import { formatTime } from '@/utils/format-when';
 
 import { useJournal } from '../hooks/use-journal';
-import { dayTile, entryText, groupByDay, startOfLocalDay } from '../journal';
+import { dayTile, entryText, filterEntries, groupByDay, startOfLocalDay } from '../journal';
 import type { JournalEntry } from '../types';
 import { MicIcon } from './mic-icon';
 
@@ -48,23 +50,23 @@ const VIEWABILITY = { itemVisiblePercentThreshold: 50 };
 
 /**
  * The notes as a journal: one section per day with a sticky day header, newest
- * first, a strip of days at the top to jump between them, and a button to write
- * today's entry.
+ * first, a search box, a strip of days at the top to jump between them, and a
+ * button to write today's entry.
  */
 export function JournalList() {
   const { status, data, retry } = useJournal();
   const now = useNow();
   // Day labels only change at midnight, so the sections are rebuilt once a day.
   const today = startOfLocalDay(now);
+  const [query, setQuery] = useState('');
+  // Typing stays quick while a long journal is filtered.
+  const search = useDeferredValue(query);
   const sections = useMemo<Section[]>(
     () =>
-      groupByDay(data ?? [], today).map(({ key, title, startsAt, entries }) => ({
-        key,
-        title,
-        startsAt,
-        data: entries,
-      })),
-    [data, today],
+      groupByDay(filterEntries(data ?? [], search), today).map(
+        ({ key, title, startsAt, entries }) => ({ key, title, startsAt, data: entries }),
+      ),
+    [data, search, today],
   );
 
   const listRef = useRef<SectionList<JournalEntry, Section>>(null);
@@ -150,23 +152,32 @@ export function JournalList() {
             <ActivityIndicator color={COLORS.primaryDark} />
           )}
         </View>
-      ) : sections.length === 0 ? (
+      ) : data.length === 0 ? (
         <EmptyJournal />
       ) : (
         <>
-          <DayStrip days={sections} activeKey={highlighted} today={today} onSelect={jumpTo} />
-          <SectionList
-            ref={listRef}
-            sections={sections}
-            keyExtractor={entryKey}
-            renderItem={renderItem}
-            renderSectionHeader={renderSectionHeader}
-            stickySectionHeadersEnabled
-            onScrollToIndexFailed={retryJump}
-            onViewableItemsChanged={onViewableItemsChanged}
-            viewabilityConfig={VIEWABILITY}
-            contentContainerStyle={styles.listContent}
-          />
+          <SearchBox value={query} onChangeText={setQuery} />
+          {sections.length === 0 ? (
+            <NoMatches />
+          ) : (
+            <>
+              <DayStrip days={sections} activeKey={highlighted} today={today} onSelect={jumpTo} />
+              <SectionList
+                ref={listRef}
+                sections={sections}
+                keyExtractor={entryKey}
+                renderItem={renderItem}
+                renderSectionHeader={renderSectionHeader}
+                stickySectionHeadersEnabled
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="on-drag"
+                onScrollToIndexFailed={retryJump}
+                onViewableItemsChanged={onViewableItemsChanged}
+                viewabilityConfig={VIEWABILITY}
+                contentContainerStyle={styles.listContent}
+              />
+            </>
+          )}
         </>
       )}
       <View style={styles.actions}>
@@ -336,6 +347,60 @@ const DayTile = memo(function DayTile({ day, index, selected, isToday, onSelect 
   );
 });
 
+type SearchBoxProps = {
+  value: string;
+  onChangeText: (text: string) => void;
+};
+
+/** Filters the journal as you type: entries whose title or text has every word. */
+function SearchBox({ value, onChangeText }: SearchBoxProps) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <View style={styles.searchRow}>
+      <View style={[styles.search, focused && styles.searchFocused]}>
+        <Icon ios="magnifyingglass" android="search" color={COLORS.textMuted} size={20} />
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          placeholder="Search your journal"
+          placeholderTextColor={COLORS.textMuted}
+          accessibilityLabel="Search your journal"
+          autoCapitalize="none"
+          autoCorrect={false}
+          returnKeyType="search"
+          cursorColor={COLORS.text}
+          selectionColor={COLORS.primary}
+          style={styles.searchInput}
+        />
+        {value !== '' && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Clear search"
+            hitSlop={SPACING.sm}
+            onPress={() => onChangeText('')}
+            style={({ pressed }) => [styles.clear, pressed && styles.pressed]}
+          >
+            <Icon ios="xmark.circle.fill" android="cancel" color={COLORS.textMuted} size={20} />
+          </Pressable>
+        )}
+      </View>
+    </View>
+  );
+}
+
+function NoMatches() {
+  return (
+    <View accessibilityLiveRegion="polite" style={styles.empty}>
+      <Text accessibilityRole="header" style={styles.emptyTitle}>
+        No entries match.
+      </Text>
+      <Text style={styles.hint}>Try another word, or clear the search.</Text>
+    </View>
+  );
+}
+
 function EmptyJournal() {
   return (
     <View style={styles.empty}>
@@ -355,6 +420,38 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: SPACING.md,
     padding: SPACING.md,
+    justifyContent: 'center',
+  },
+  searchRow: {
+    paddingHorizontal: SPACING.md,
+    paddingTop: SPACING.sm,
+  },
+  search: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    minHeight: 48,
+    paddingHorizontal: SPACING.md,
+    borderRadius: RADII.pill,
+    borderWidth: 1.5,
+    borderColor: COLORS.borderStrong,
+    backgroundColor: COLORS.surface,
+  },
+  searchFocused: {
+    borderColor: COLORS.coral,
+  },
+  searchInput: {
+    flex: 1,
+    minHeight: 44,
+    paddingVertical: 0,
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.body,
+    color: COLORS.text,
+  },
+  clear: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
     justifyContent: 'center',
   },
   strip: {

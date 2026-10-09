@@ -1,3 +1,4 @@
+export { describeReminderTime } from './api/group-reminders';
 export {
   createReminder,
   deleteReminder,

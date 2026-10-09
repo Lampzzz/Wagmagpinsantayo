@@ -186,7 +186,19 @@ or in ☰ → Conversations, a chat view of the same assistant.
       (`READ_REPLIES_ALOUD = false`); screen readers announce each reply
 - [x] Common wordings are understood instantly by fixed rules, even before
       the AI download
-- [x] Other wordings go to the on-device AI, which only proposes actions
+- [x] Natural speech: "um", "uh" and Pinsan's name are left out ("Hey Pinsan,
+      remind me to, uh, call Mom at 7"), and everyday ways of asking work without
+      the AI: "Don't let me forget…", "Wake me up at 6", "Set a timer for 20
+      minutes", "I need to call the dentist tomorrow", "What do I have today?",
+      "I already paid the electric bill", "Never mind the dentist reminder", and
+      a yes said the long way ("Yes please, thank you")
+- [x] Small talk gets a friendly answer instead of "I'm not sure": greetings,
+      thanks (also "Salamat"), "How are you?", "Who are you?", "What can you
+      do?", "Tell me a joke", "I'm tired". Other chat goes to the AI, which may
+      answer in Pinsan's voice but can't claim it did anything
+- [x] Other wordings go to the on-device AI, which only proposes actions. Its
+      answers are checked against the user's words: a title or item the user
+      never said is rejected, and a reworded time is replaced by the user's own
 - [x] Several requests in one message run in order: "Create a task to buy
       groceries, then remind me in 10 minutes to check my list"
 - [x] "It" means the item just mentioned: "Remind me in 5 minutes to review it"
@@ -291,9 +303,9 @@ A reminder can ring like an alarm instead of a plain notification, for things th
 mustn't be missed.
 
 - [x] The reminder editor has a "Ring as alarm" switch, off by default
-- [x] "Set an alarm for 7 AM to take my medicine", "Wake me up at 6", "… with an
-      alarm" and "Set an alarm every day at 8 AM to …" make an alarm; Pinsan
-      replies "Alarm set for …"
+- [x] "Set an alarm for 7 AM to take my medicine", "Wake me up at 6", "Set a timer
+      for 20 minutes", "… with an alarm" and "Set an alarm every day at 8 AM to …"
+      make an alarm; Pinsan replies "Alarm set for …"
 - [x] Rings on its own "Reminder alarms" channel: alarm volume, heard on silent,
       a long vibration; the alert stays in the tray with Snooze and Done buttons
 - [x] With the app open, a full-screen alarm screen opens and rings (a beeping

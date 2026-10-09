@@ -43,6 +43,20 @@ describe('parseQuickAdd', () => {
     ],
     ['To-do: buy milk tomorrow', { title: 'buy milk', when: 'tomorrow' }],
     ['Exercise at 6pm', { title: 'Exercise', when: 'at 6pm' }],
+    // Said the way people talk.
+    [
+      'I need to pick up the dry cleaning on Friday',
+      { title: 'pick up the dry cleaning', when: 'on Friday' },
+    ],
+    ['I have to submit my report by Friday', { title: 'submit my report', when: 'by Friday' }],
+    ["I've got to call the dentist tomorrow", { title: 'call the dentist', when: 'tomorrow' }],
+    [
+      'I should probably call the dentist next week',
+      { title: 'call the dentist', when: 'next week' },
+    ],
+    ["So, I'm planning to visit Lola on Saturday", { title: 'visit Lola', when: 'on Saturday' }],
+    ['I have a meeting with Carlo at 10', { title: 'meeting with Carlo', when: 'at 10' }],
+    ["There's a team meeting tomorrow at 10", { title: 'team meeting', when: 'tomorrow at 10' }],
   ])('reads %p as a to-do', (text, expected) => {
     expect(parseQuickAdd(text)).toEqual({ kind: 'add-task', ...expected, quickAdd: true });
   });
@@ -55,8 +69,12 @@ describe('parseQuickAdd', () => {
     'Hello',
     'Good morning',
     'Thanks',
-    'I need to pick up the dry cleaning on Friday',
+    'Thank you for the help, Pinsan',
     'The meeting moved to Monday 10am',
+    // Said like a to-do, but nothing to do.
+    'I need to sleep',
+    "I'm going to bed",
+    'I have a question',
     // No to-do verb, or an event with no date.
     'Groceries',
     'Groceries tomorrow',

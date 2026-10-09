@@ -9,6 +9,7 @@ import type {
   Command,
   ConversationState,
   DataAction,
+  ModelReading,
   Outcome,
   TurnInput,
 } from '../types';
@@ -499,7 +500,7 @@ describe('runTurn: requests it cannot handle', () => {
     const commands: Command[] = [
       { kind: 'add-task', title: 'pick up the dry cleaning', when: 'on Friday' },
     ];
-    const model = jest.fn(async () => commands);
+    const model = jest.fn(async () => ({ commands, reply: null }));
     const world = createWorld({ model });
     const reply = await world.send(
       'I need to pick up the dry cleaning on Friday, put that on my list',
@@ -509,7 +510,7 @@ describe('runTurn: requests it cannot handle', () => {
   });
 
   it('never calls the model for wording the rules know', async () => {
-    const model = jest.fn(async (): Promise<Command[]> => []);
+    const model = jest.fn(async (): Promise<ModelReading> => ({ commands: [], reply: null }));
     const world = createWorld({ model });
     await world.send('Create a task to study');
     expect(model).not.toHaveBeenCalled();
@@ -521,7 +522,7 @@ describe('runTurn: requests it cannot handle', () => {
         throw new Error('timeout');
       },
     });
-    const reply = await world.send('I need to pick up the dry cleaning on Friday');
+    const reply = await world.send('Sort out the thing with the landlord');
     expect(reply.text).toContain("Sorry, I couldn't work that out.");
     expect(reply.buttons).toEqual([]);
     expect(world.tasks).toHaveLength(0);
@@ -695,7 +696,7 @@ describe('runTurn: Smart Quick Add', () => {
   });
 
   it('never waits for the model on a clear to-do', async () => {
-    const model = jest.fn(async (): Promise<Command[]> => []);
+    const model = jest.fn(async (): Promise<ModelReading> => ({ commands: [], reply: null }));
     const world = createWorld({ model, now: THURSDAY });
     const reply = await world.send('Pay electric bill tomorrow 5pm');
     expect(model).not.toHaveBeenCalled();
@@ -703,9 +704,9 @@ describe('runTurn: Smart Quick Add', () => {
   });
 
   it('lets the model decide what an unclear sentence means', async () => {
-    const model = jest.fn(async (): Promise<Command[]> => []);
+    const model = jest.fn(async (): Promise<ModelReading> => ({ commands: [], reply: null }));
     const world = createWorld({ model, now: THURSDAY });
-    for (const text of ["What's the weather like?", 'Groceries tomorrow', 'Hello there']) {
+    for (const text of ["What's the weather like?", 'Groceries tomorrow', 'Purple elephants']) {
       const reply = await world.send(text);
       expect(reply.text).toContain("I'm not sure what you mean.");
       expect(reply.question).toBeNull();
@@ -715,9 +716,10 @@ describe('runTurn: Smart Quick Add', () => {
   });
 
   it('shows back a to-do the model read, with its reminder, before saving', async () => {
-    const model = jest.fn(async (): Promise<Command[]> => [
-      { kind: 'add-task', title: 'call Ana', when: 'tomorrow at 3' },
-    ]);
+    const model = jest.fn(async (): Promise<ModelReading> => ({
+      commands: [{ kind: 'add-task', title: 'call Ana', when: 'tomorrow at 3' }],
+      reply: null,
+    }));
     const world = createWorld({ model, now: THURSDAY });
     expect((await world.send('I need to call Ana tomorrow at 3')).text).toBe(
       'Add "Call Ana" for tomorrow at 3:00 PM? I\'ll remind you then.',
@@ -740,7 +742,7 @@ describe('runTurn: Smart Quick Add', () => {
   });
 
   it('leaves the existing wordings on their old paths', async () => {
-    const model = jest.fn(async (): Promise<Command[]> => []);
+    const model = jest.fn(async (): Promise<ModelReading> => ({ commands: [], reply: null }));
     const world = createWorld({ model, now: THURSDAY });
 
     const task = await world.send('Create a task to buy milk');
@@ -851,7 +853,7 @@ describe('runTurn: emergency call', () => {
   });
 
   it('never asks the model about a call for help', async () => {
-    const model = jest.fn(async (): Promise<Command[]> => []);
+    const model = jest.fn(async (): Promise<ModelReading> => ({ commands: [], reply: null }));
     const world = createWorld({ model });
     await world.send('Call an ambulance');
     expect(model).not.toHaveBeenCalled();
@@ -957,7 +959,7 @@ describe('runTurn: journal', () => {
   });
 
   it('never asks the model about a journal entry', async () => {
-    const model = jest.fn(async (): Promise<Command[]> => []);
+    const model = jest.fn(async (): Promise<ModelReading> => ({ commands: [], reply: null }));
     const world = createWorld({ model });
     await world.send('Note to self: call the bank about the card');
     expect(model).not.toHaveBeenCalled();
@@ -1135,10 +1137,96 @@ describe('runTurn: every-day reminders', () => {
   });
 
   it('never asks the model about a daily reminder', async () => {
-    const model = jest.fn(async (): Promise<Command[]> => []);
+    const model = jest.fn(async (): Promise<ModelReading> => ({ commands: [], reply: null }));
     const world = createWorld({ model });
     await world.send('Remind me every morning at 8 to take my vitamins');
     expect(model).not.toHaveBeenCalled();
     expect(world.state.pending?.question.kind).toBe('confirm');
+  });
+});
+
+describe('runTurn: talking naturally', () => {
+  it('hears a request through fillers and his name', async () => {
+    const world = createWorld();
+    const reply = await world.send('Um, hey Pinsan, remind me to, uh, call Mom at 7 tonight.');
+    expect(reply.text).toBe('Reminder set for today at 7:00 PM (in 9 hours): Call Mom.');
+  });
+
+  it.each([
+    ["Don't let me forget to bring my ID tomorrow at 8", 'Bring my ID', at(2026, 10, 6, 8)],
+    ['Help me remember to water the plants in 2 hours', 'Water the plants', at(2026, 10, 5, 12)],
+    ['Tomorrow at 9, remind me to call the bank', 'Call the bank', at(2026, 10, 6, 9)],
+    ['Can you wake me up tomorrow at 6 AM?', 'Wake up', at(2026, 10, 6, 6)],
+    ['Set a timer for 20 minutes', 'Timer', at(2026, 10, 5, 10, 20)],
+  ])('sets a reminder for %p', async (text, title, scheduledAt) => {
+    const world = createWorld();
+    await world.send(text);
+    expect(world.reminders).toEqual([expect.objectContaining({ title, scheduledAt })]);
+  });
+
+  it('answers small talk straight away, without the model', async () => {
+    const model = jest.fn(async (): Promise<ModelReading> => ({ commands: [], reply: null }));
+    const world = createWorld({ model });
+    for (const [text, answer] of [
+      ['Hi Pinsan!', "Hi! What's on your mind?"],
+      ['Thank you, Pinsan.', "You're welcome!"],
+      ['How are you?', "I'm doing great, thanks for asking! How about you?"],
+    ]) {
+      const reply = await world.send(text);
+      expect(reply).toMatchObject({ text: answer, isError: false, question: null });
+    }
+    expect(model).not.toHaveBeenCalled();
+    expect(world.tasks).toHaveLength(0);
+  });
+
+  it("shows the model's answer when the user is only chatting", async () => {
+    const model = jest.fn(async (): Promise<ModelReading> => ({
+      commands: [],
+      reply: "Exams are tough. You've studied, so get some rest tonight.",
+    }));
+    const world = createWorld({ model });
+    const reply = await world.send("I'm stressed about my exam tomorrow");
+    expect(reply).toMatchObject({
+      text: "Exams are tough. You've studied, so get some rest tonight.",
+      isError: false,
+    });
+  });
+
+  it('takes a yes or a no said the long way', async () => {
+    const world = createWorld();
+    await world.send('Pay electric bill tomorrow 5pm');
+    await world.send('Yes please, thank you');
+    expect(world.tasks).toEqual([expect.objectContaining({ title: 'Pay electric bill' })]);
+
+    await world.send('Buy groceries');
+    expect((await world.send('No thanks')).text).toBe('Okay, I didn\'t add "Buy groceries".');
+    expect(world.tasks).toHaveLength(1);
+  });
+
+  it('lists tasks and reminders for "What do I have today?"', async () => {
+    const world = createWorld();
+    await world.send('Add a task to finish the slides today');
+    await world.send('Remind me at 3 PM to call Ana');
+    const reply = await world.send('Pinsan, what do I have today?');
+    expect(reply.items.map(({ title }) => title)).toEqual(['Finish the slides', 'Call Ana']);
+  });
+
+  it('ticks off a task when told it is already done', async () => {
+    const world = createWorld();
+    await world.send('Add a task to pay the electric bill');
+    expect((await world.send('I already paid the electric bill')).text).toBe(
+      'Marked "Pay the electric bill" as done.',
+    );
+  });
+
+  it('reads "every night at 10" as a daily reminder', async () => {
+    const world = createWorld();
+    const reply = await world.send('Every night at 10, remind me to drink water.');
+    expect(reply.question).toMatchObject({
+      kind: 'confirm',
+      action: {
+        reminder: { title: 'Drink water', scheduledAt: at(2026, 10, 5, 22), repeat: 'daily' },
+      },
+    });
   });
 });

@@ -30,6 +30,8 @@ import { parseEmergency } from './parse-emergency';
 import { parseJournalEntry } from './parse-journal';
 import { parseQuickAdd } from './parse-quick-add';
 import { resolveCommand, type ResolveContext } from './resolve-command';
+import { replyToSmallTalk } from './small-talk';
+import { tidySpeech } from './tidy-speech';
 
 export type TurnResult = { reply: AssistantReply; state: ConversationState };
 
@@ -45,10 +47,17 @@ type Answer =
   | { kind: 'fill'; text: string }
   | { kind: 'new-request' };
 
-const CANCEL_WORDS = /^(?:never ?mind|cancel|stop|forget it|forget about it)$/;
-const YES_WORDS =
-  /^(?:yes|yeah|yep|yup|sure|ok|okay|do it|go ahead|confirm|correct|right|yes please|please do|that's right|delete it)$/;
-const NO_WORDS = /^(?:no|nope|nah|no thanks|don't|do not|keep it|leave it)$/;
+const CANCEL_WORDS =
+  /^(?:(?:ok|okay|oh|actually|no) )?(?:never ?mind|cancel|stop|forget it|forget about it)(?: (?:please|thanks|thank you))?$/;
+// Polite words around an answer: "Yes please, thank you", "No thanks".
+const ANSWER_FILLER = '(?:please|thanks|thank you|and|so|just)';
+// A yes, or a yes said the long way: "Yeah, sure", "Okay go ahead, thanks".
+const YES_WORDS = saidOnly(
+  "yes|yeah|yep|yup|sure|ok|okay|alright|all right|do it|go ahead|go for it|confirm|correct|right|that's right|that's correct|sounds good|perfect|great|of course|definitely|absolutely|please do|yes please|save it|add it|delete it",
+);
+const NO_WORDS = saidOnly(
+  "no|nope|nah|no thanks|no thank you|don't|do not|not now|not yet|keep it|leave it|wait|hold on",
+);
 const NO_DATE_WORDS = /^(?:no date|no due date|no deadline|none|skip|without a date)$/;
 // "Yes, call", "Please hurry", "Help!": each a yes to "Call emergency services (911)?".
 const CALL_WORDS =
@@ -79,10 +88,13 @@ const ORDINALS = new Map([
  * voice take exactly this path. Returns the reply and the conversation state to keep.
  */
 export async function runTurn(
-  input: TurnInput,
+  sent: TurnInput,
   state: ConversationState,
   deps: AssistantDeps,
 ): Promise<TurnResult> {
+  // Fillers and Pinsan's name aren't part of what was asked: "Um, Pinsan, yes please".
+  const input: TurnInput =
+    sent.kind === 'text' ? { kind: 'text', text: tidySpeech(sent.text) } : sent;
   const now = deps.now();
   const { pending } = state;
 
@@ -135,6 +147,9 @@ async function startRequest(
       now,
     );
   }
+  // Small talk gets an answer of its own, straight away: "Hi!", "Thank you", "How are you?".
+  const chat = replyToSmallTalk(text, now);
+  if (chat) return nothingPending(composeMessage([...preface, chat].join('\n')));
   // A journal entry is the user's own words: nothing in it is read as a request. Every
   // day is the one repeat a reminder can have; other repeats are turned down below.
   const whole = parseJournalEntry(text) ?? parseDailyReminder(text);
@@ -156,14 +171,19 @@ async function startRequest(
     if (quickAdd) commands = [quickAdd];
   }
   let modelFailed = false;
+  let modelReply: string | null = null;
   if (!commands && deps.interpretWithModel) {
     try {
-      commands = asQuickAdd(await deps.interpretWithModel(text), text);
+      const reading = await deps.interpretWithModel(text);
+      commands = asQuickAdd(reading.commands, text);
+      modelReply = reading.reply;
     } catch {
       modelFailed = true;
     }
   }
   if (!commands || commands.length === 0) {
+    // The user was only chatting, and the model answered as Pinsan.
+    if (modelReply) return nothingPending(composeMessage([...preface, modelReply].join('\n')));
     return nothingPending(
       composeNotUnderstood({
         preface,
@@ -353,6 +373,11 @@ function isRequest(text: string): boolean {
     parseDailyReminder(text) ||
     parseCommandRules(text),
   );
+}
+
+// The whole answer is made of these words, with polite ones around them.
+function saidOnly(words: string): RegExp {
+  return new RegExp(`^(?:${ANSWER_FILLER} )*(?:${words})(?: (?:${words}|${ANSWER_FILLER}))*$`);
 }
 
 // "The second one." → "second"

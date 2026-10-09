@@ -3,6 +3,7 @@ import type { ChatMessage, LLMGenerationConfig } from 'react-native-executorch/l
 
 import { TEXT_MODEL } from './ai-models';
 import { localModel } from './model-files';
+import { parseJsonObject } from './parse-json-object';
 
 const DEFAULT_TIMEOUT_MS = 60_000;
 const DEFAULT_GENERATION: LLMGenerationConfig = { temperature: 0.2, maxNewTokens: 512 };
@@ -91,15 +92,4 @@ function replyText(messages: readonly ChatMessage[]): string {
 
 function isString(value: unknown): value is string {
   return typeof value === 'string';
-}
-
-function parseJsonObject(text: string): unknown {
-  const start = text.indexOf('{');
-  const end = text.lastIndexOf('}');
-  if (start === -1 || end <= start) return undefined;
-  try {
-    return JSON.parse(text.slice(start, end + 1));
-  } catch {
-    return undefined;
-  }
 }

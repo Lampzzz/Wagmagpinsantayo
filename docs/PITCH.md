@@ -47,9 +47,9 @@ Swap-in shots, if there's time:
   suggests; I decide."
 - **Emergency:** ☰ → Emergency shows "Call emergency services?". Tap Cancel. Voice-over: "In an
   emergency, it opens the dialer with 911. It never calls by itself." Never tap Call on camera.
-- **A reminder arriving:** type "Remind me in 1 minute to call Ana" with the keyboard button at
-  the start, then cut to the notification. Voice-over: "And the reminder arrives on time, still in
-  airplane mode."
+- **A reminder arriving:** type "Set an alarm in 1 minute to call Ana" with the keyboard button at
+  the start, then cut to the alarm screen ringing, and tap Done. Voice-over: "And the alarm rings on
+  time, still in airplane mode."
 
 Post it on X or LinkedIn, tag Devin / Cognition and add #AppBuildersPH. Caption:
 
@@ -85,6 +85,8 @@ button: it takes the same path.
   Reminders shows a note with **Open settings** for it.
 - Do Not Disturb is off, so the reminder shows. Pinsan's replies aren't read aloud, so only the
   notification needs sound.
+- Alarm and media volume are up: an alarm reminder's alert plays at alarm volume, and its alarm
+  screen's tone at media volume.
 - Seed data: two or three tasks for today, and a note of 50 words or more with a few to-dos and
   dates in it (Summarize skips notes under 50 words).
 - Restart the app to clear Pinsan's bubble and the Conversations chat. Earlier lines stay in

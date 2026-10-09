@@ -12,11 +12,11 @@ const POLITE_END = /(?:[\s,]+(?:please|thanks|thank you|for me))+$/i;
 
 // Words that start a new request in a sentence like "…, then remind me to …".
 const ANY_OPENER =
-  '(?:remind me|set (?:me )?(?:a |an )?reminder|(?:add|create|make) (?:a |an |another )?(?:new )?(?:reminder|task|to-?do)|mark|check off|tick off|delete|remove|cancel|stop reminding|dismiss|reopen|move|reschedule|push|postpone|change|rename|show|list|what|which|find)';
-// After a bare "and", only a new task or reminder starts a new request, so
+  '(?:remind me|set (?:me )?(?:a |an )?reminder|(?:add|create|make) (?:a |an |another )?(?:new )?(?:reminder|task|to-?do)|set (?:me )?(?:an |the |my )?alarm|wake me|mark|check off|tick off|delete|remove|cancel|stop reminding|dismiss|reopen|move|reschedule|push|postpone|change|rename|show|list|what|which|find)';
+// After a bare "and", only a new task, reminder or alarm starts a new request, so
 // "remind me to email Bob and delete the draft" stays one reminder.
 const CREATE_OPENER =
-  '(?:remind me|set (?:me )?(?:a |an )?reminder|(?:add|create|make) (?:a |an |another )?(?:new )?(?:reminder|task|to-?do))';
+  '(?:remind me|set (?:me )?(?:a |an )?reminder|(?:add|create|make) (?:a |an |another )?(?:new )?(?:reminder|task|to-?do)|set (?:me )?(?:an |the |my )?alarm|wake me)';
 const CLAUSE_BREAK = new RegExp(
   `\\s*[,;.]\\s*(?:and then |then |and also |also |and )?(?=${ANY_OPENER}\\b)|\\s+(?:and then|then)\\s+(?=${ANY_OPENER}\\b)|\\s+(?:and also|also|and)\\s+(?=${CREATE_OPENER}\\b)`,
   'i',
@@ -24,6 +24,11 @@ const CLAUSE_BREAK = new RegExp(
 
 const REMINDER_OPENER =
   /^(?:remind me|set (?:me )?(?:a |an )?reminder|(?:add|create|make) (?:a |an )?(?:new )?reminder|alert me|notify me)(?:[\s,:]+(.*))?$/i;
+// A reminder that rings like an alarm: "set an alarm for 7 AM to …", "wake me up at 6".
+const ALARM_OPENER =
+  /^(?:set (?:me )?(?:an |the |my )?alarm|(?:add|create|make) (?:an |a )?(?:new )?alarm|(wake me)(?: up)?)(?:[\s,:]+(.*))?$/i;
+// "remind me to call Mom at 5 with an alarm".
+const AS_ALARM = /[\s,]+(?:with|as)\s+(?:an?\s+)?alarm$/i;
 const SUBJECT = /^(?:to|that|about|of)\s+(.+)$/i;
 
 const TASK_OPENER =
@@ -188,10 +193,26 @@ function parseClause(clause: string): Command | null {
   );
 }
 
+type AddReminder = Extract<Command, { kind: 'add-reminder' }>;
+
 function parseAddReminder(clause: string): Command | null {
-  const match = REMINDER_OPENER.exec(clause);
+  const alarm = ALARM_OPENER.exec(clause);
+  if (alarm) {
+    const reminder = readReminder((alarm[2] ?? '').trim());
+    if (!reminder) return null;
+    // An alarm needs no subject: "wake me up at 6" is about waking up.
+    const title = reminder.title || (alarm[1] ? 'Wake up' : 'Alarm');
+    return { ...reminder, title, alarm: true };
+  }
+  const asAlarm = AS_ALARM.exec(clause);
+  const match = REMINDER_OPENER.exec(asAlarm ? clause.slice(0, asAlarm.index) : clause);
   if (!match) return null;
-  const rest = (match[1] ?? '').trim();
+  const reminder = readReminder((match[1] ?? '').trim());
+  return reminder && asAlarm ? { ...reminder, alarm: true } : reminder;
+}
+
+// What follows "remind me" or "set an alarm": a time, a subject, or both, in either order.
+function readReminder(rest: string): AddReminder | null {
   if (!rest) return { kind: 'add-reminder', title: '' };
 
   // In "set a reminder for 30 minutes to …" the "for" belongs to the opener.

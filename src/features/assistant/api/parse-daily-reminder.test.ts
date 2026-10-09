@@ -27,6 +27,21 @@ describe('parseDailyReminder', () => {
   });
 
   it.each([
+    [
+      'Set an alarm every day at 8 AM to take my medicine',
+      { title: 'take my medicine', when: 'at 8 AM' },
+    ],
+    ['Wake me up every day at 6', { title: 'Wake up', when: 'at 6' }],
+  ])('reads %p as a daily alarm', (text, fields) => {
+    expect(parseDailyReminder(text)).toEqual({
+      kind: 'add-reminder',
+      ...fields,
+      alarm: true,
+      repeat: 'daily',
+    });
+  });
+
+  it.each([
     'Remind me every Monday at 8 to take out the trash',
     'Remind me every 2 hours to drink water',
     'Remind me every other day to water the plants',

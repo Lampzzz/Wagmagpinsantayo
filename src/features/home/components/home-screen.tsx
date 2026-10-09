@@ -143,6 +143,8 @@ export function HomeScreen() {
             label={NOTE_LABELS[stage]}
             words={talk.words ?? ''}
             placeholder="Go ahead, I'm listening…"
+            // Once there are words to clear. The mic is surely on by then.
+            onStartOver={stage === 'listening' && talk.words ? talk.startOver : undefined}
           />
         )}
         {talk.composerOpen ? (

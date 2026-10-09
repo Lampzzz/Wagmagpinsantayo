@@ -1,7 +1,7 @@
 import type { AlertOutcome, Reminder } from '@/features/reminders';
 import type { Task } from '@/features/tasks';
 import { capitalize } from '@/utils/capitalize';
-import { formatRelative, formatWhen } from '@/utils/format-when';
+import { formatDay, formatRelative, formatTime, formatWhen } from '@/utils/format-when';
 import { calendarDaysBetween } from '@/utils/resolve-when';
 
 import type {
@@ -124,7 +124,7 @@ export function composeRecurring(preface: readonly string[] = []): AssistantRepl
   return composeMessage(
     [
       ...preface,
-      'Repeating reminders aren\'t supported yet. I can set a one-time reminder instead, like "Remind me tomorrow at 8 AM to take my medicine".',
+      'I can only repeat a reminder every day for now, like "Remind me every day at 8 AM to take my medicine".',
     ].join('\n'),
     { isError: true },
   );
@@ -228,10 +228,15 @@ function taskSavedText(action: Action, task: Task, stillOn: readonly Reminder[],
 }
 
 function reminderSavedText(action: Action, reminder: Reminder, alert: AlertOutcome, now: number) {
-  const when = formatWhen(reminder.scheduledAt, true, now);
+  const when = reminderWhen(reminder, now);
   const untilIt = reminder.scheduledAt - now;
+  // A daily reminder says the day it starts instead: "every day at 8:00 AM, starting tomorrow".
   const soon =
-    untilIt > 0 && untilIt < SOON_MS ? ` (${formatRelative(reminder.scheduledAt, now)})` : '';
+    reminder.repeat === 'daily'
+      ? `, starting ${formatDay(reminder.scheduledAt, now)}`
+      : untilIt > 0 && untilIt < SOON_MS
+        ? ` (${formatRelative(reminder.scheduledAt, now)})`
+        : '';
   const noAlert =
     alert === 'no-permission'
       ? "Notifications are off, so it can't alert you."
@@ -265,10 +270,17 @@ function reminderSavedText(action: Action, reminder: Reminder, alert: AlertOutco
   return sentences.join(' ');
 }
 
+// "tomorrow at 8:00 AM", or "every day at 8:00 AM" for a daily reminder.
+function reminderWhen(reminder: Reminder, now: number): string {
+  return reminder.repeat === 'daily'
+    ? `every day at ${formatTime(reminder.scheduledAt)}`
+    : formatWhen(reminder.scheduledAt, true, now);
+}
+
 function stillOnText(reminders: readonly Reminder[], now: number): string {
   if (reminders.length === 0) return '';
   if (reminders.length === 1) {
-    return ` Its reminder for ${formatWhen(reminders[0].scheduledAt, true, now)} is still on.`;
+    return ` Its reminder for ${reminderWhen(reminders[0], now)} is still on.`;
   }
   return ` Its ${reminders.length} reminders are still on.`;
 }
@@ -361,8 +373,11 @@ function taskItem(task: Task, now: number, withNotes: boolean): ReplyItem {
 }
 
 function reminderItem(reminder: Reminder, now: number): ReplyItem {
-  const parts = [capitalize(formatWhen(reminder.scheduledAt, true, now))];
-  if (reminder.status === 'scheduled' && reminder.scheduledAt <= now) parts.push('Past due');
+  const daily = reminder.repeat === 'daily';
+  const parts = [capitalize(reminderWhen(reminder, now))];
+  if (!daily && reminder.status === 'scheduled' && reminder.scheduledAt <= now) {
+    parts.push('Past due');
+  }
   if (reminder.status === 'completed') parts.push('Done');
   if (reminder.status === 'dismissed') parts.push('Dismissed');
   if (reminder.status === 'cancelled') parts.push('Cancelled');

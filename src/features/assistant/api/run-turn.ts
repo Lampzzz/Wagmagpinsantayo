@@ -25,6 +25,7 @@ import {
 } from './compose-reply';
 import { matchTitle } from './match-title';
 import { parseCommandRules } from './parse-command-rules';
+import { parseDailyReminder } from './parse-daily-reminder';
 import { parseEmergency } from './parse-emergency';
 import { parseJournalEntry } from './parse-journal';
 import { parseQuickAdd } from './parse-quick-add';
@@ -134,11 +135,12 @@ async function startRequest(
       now,
     );
   }
-  // A journal entry is the user's own words: nothing in it is read as a request.
-  const entry = parseJournalEntry(text);
-  if (entry) {
+  // A journal entry is the user's own words: nothing in it is read as a request. Every
+  // day is the one repeat a reminder can have; other repeats are turned down below.
+  const whole = parseJournalEntry(text) ?? parseDailyReminder(text);
+  if (whole) {
     return runWork(
-      { work: [{ kind: 'command', command: entry }], skipped: [] },
+      { work: [{ kind: 'command', command: whole }], skipped: [] },
       focus,
       deps,
       now,
@@ -328,9 +330,7 @@ function readAnswer(input: TurnInput, question: Question): Answer {
       break;
   }
 
-  if (parseEmergency(text) || parseJournalEntry(text) || parseCommandRules(text)) {
-    return { kind: 'new-request' };
-  }
+  if (isRequest(text)) return { kind: 'new-request' };
 
   // Looser answers, tried only once the text isn't a request of its own.
   if (question.kind === 'pick') {
@@ -343,6 +343,16 @@ function readAnswer(input: TurnInput, question: Question): Answer {
     return { kind: 'fill', text };
   }
   return { kind: 'new-request' };
+}
+
+// A message that asks for something of its own, rather than answering the question.
+function isRequest(text: string): boolean {
+  return Boolean(
+    parseEmergency(text) ||
+    parseJournalEntry(text) ||
+    parseDailyReminder(text) ||
+    parseCommandRules(text),
+  );
 }
 
 // "The second one." → "second"

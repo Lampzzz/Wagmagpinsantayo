@@ -1,5 +1,11 @@
 import type { Note, NoteContent } from '@/features/notes';
-import type { AlertOutcome, NewReminder, Reminder, ReminderChanges } from '@/features/reminders';
+import type {
+  AlertOutcome,
+  NewReminder,
+  Reminder,
+  ReminderChanges,
+  ReminderRepeat,
+} from '@/features/reminders';
 import type { NewTask, Task, TaskChanges, TaskPriority } from '@/features/tasks';
 
 export type Entity = 'task' | 'reminder';
@@ -28,8 +34,12 @@ export type Command =
        */
       quickAdd?: boolean;
     }
-  /** An empty title, or one with "it", links the reminder to the task just touched. */
-  | { kind: 'add-reminder'; title: string; when?: string }
+  /**
+   * An empty title, or one with "it", links the reminder to the task just touched.
+   * `repeat: 'daily'` rings every day at the time of day in `when`, and is shown back
+   * for a yes before it's saved.
+   */
+  | { kind: 'add-reminder'; title: string; when?: string; repeat?: ReminderRepeat }
   | {
       kind: 'list-tasks';
       status?: TaskListStatus;

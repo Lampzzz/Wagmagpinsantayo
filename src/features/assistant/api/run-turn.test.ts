@@ -427,10 +427,18 @@ describe('runTurn: several requests and follow-ups', () => {
 });
 
 describe('runTurn: requests it cannot handle', () => {
-  it('refuses repeating reminders out loud', async () => {
+  it.each([
+    'Remind me every Monday at 8 to take out the trash',
+    'Remind me every 2 hours to drink water',
+    'Remind me every other day to water the plants',
+    'Remind me weekly to call grandma',
+  ])('refuses %p out loud, since only every day is supported', async (text) => {
     const world = createWorld();
-    const reply = await world.send('Remind me every day at 8 to take my pills');
-    expect(reply.text).toContain("Repeating reminders aren't supported yet.");
+    const reply = await world.send(text);
+    expect(reply.text).toBe(
+      'I can only repeat a reminder every day for now, like "Remind me every day at 8 AM to take my medicine".',
+    );
+    expect(reply.isError).toBe(true);
     expect(world.reminders).toHaveLength(0);
   });
 
@@ -917,5 +925,135 @@ describe('runTurn: journal', () => {
       'Updated the notes on "Finish the project report".',
     );
     expect(world.notes).toHaveLength(0);
+  });
+});
+
+describe('runTurn: every-day reminders', () => {
+  it('shows the daily reminder back, then saves it on Save', async () => {
+    const world = createWorld();
+
+    const proposal = await world.send('Remind me to take my medicine every day at 8 AM');
+    expect(proposal.text).toBe(
+      'Remind you every day at 8:00 AM: "Take my medicine"? The first one is tomorrow.',
+    );
+    expect(proposal.question).toMatchObject({
+      kind: 'confirm',
+      action: {
+        kind: 'create-reminder',
+        reminder: {
+          title: 'Take my medicine',
+          scheduledAt: at(2026, 10, 6, 8),
+          taskId: null,
+          repeat: 'daily',
+        },
+      },
+      yesLabel: 'Save',
+      noLabel: 'Cancel',
+    });
+    expect(world.reminders).toHaveLength(0);
+
+    const reply = await world.send({ kind: 'confirm', yes: true });
+    expect(reply.text).toBe(
+      'Reminder set for every day at 8:00 AM, starting tomorrow: Take my medicine.',
+    );
+    expect(world.reminders).toEqual([
+      expect.objectContaining({
+        title: 'Take my medicine',
+        scheduledAt: at(2026, 10, 6, 8),
+        repeat: 'daily',
+      }),
+    ]);
+    expect(reply.items).toEqual([expect.objectContaining({ detail: 'Every day at 8:00 AM' })]);
+    expect(world.state.pending).toBeNull();
+  });
+
+  it.each([
+    ['Remind me every morning at 8 to take my vitamins', 'Take my vitamins', 8, 0, 'tomorrow'],
+    ['Remind me daily at 9pm to stretch', 'Stretch', 21, 0, 'today'],
+    ['Remind me every night to take my meds', 'Take my meds', 20, 0, 'today'],
+    ['Remind me to stretch every day at 5', 'Stretch', 17, 0, 'today'],
+    ['Set a daily reminder at 7:30 to walk the dog', 'Walk the dog', 7, 30, 'tomorrow'],
+    ['Take my medicine every day at 8 AM', 'Take my medicine', 8, 0, 'tomorrow'],
+    ['Water the plants every evening', 'Water the plants', 18, 0, 'today'],
+  ])('reads %p as %p every day at %p:%p', async (text, title, hour, minute, first) => {
+    const world = createWorld();
+    const scheduledAt = at(2026, 10, first === 'today' ? 5 : 6, hour, minute);
+    const time = `${hour % 12 || 12}:${String(minute).padStart(2, '0')} ${hour < 12 ? 'AM' : 'PM'}`;
+
+    const proposal = await world.send(text);
+    expect(proposal.text).toBe(
+      `Remind you every day at ${time}: "${title}"? The first one is ${first}.`,
+    );
+    await world.send('Save');
+    expect(world.reminders).toEqual([
+      expect.objectContaining({ title, scheduledAt, repeat: 'daily' }),
+    ]);
+    expect(world.tasks).toHaveLength(0);
+  });
+
+  it('asks what time when none is given', async () => {
+    const world = createWorld();
+    const question = await world.send('Remind me to drink water every day');
+    expect(question.text).toBe('What time every day?');
+    expect(question.question).toMatchObject({
+      kind: 'fill',
+      field: 'when',
+      suggestions: ['At 8 AM', 'At 12 PM', 'At 6 PM', 'At 9 PM'],
+    });
+
+    expect((await world.send('At 6 PM')).text).toBe(
+      'Remind you every day at 6:00 PM: "Drink water"? The first one is today.',
+    );
+    await world.send('yes');
+    expect(world.reminders).toEqual([
+      expect.objectContaining({ scheduledAt: at(2026, 10, 5, 18), repeat: 'daily' }),
+    ]);
+  });
+
+  it('asks what about, then what time, keeping it daily', async () => {
+    const world = createWorld();
+    expect((await world.send('Remind me every day')).text).toBe('What should I remind you about?');
+    expect((await world.send('take my pills')).text).toBe('What time every day?');
+    expect((await world.send('8')).text).toBe(
+      'Remind you every day at 8:00 AM: "Take my pills"? The first one is tomorrow.',
+    );
+  });
+
+  it('saves nothing when the user cancels', async () => {
+    const world = createWorld();
+    await world.send('Remind me to take my medicine every day at 8 AM');
+    expect((await world.send({ kind: 'confirm', yes: false })).text).toBe(
+      'Okay, I didn\'t add "Take my medicine".',
+    );
+    expect(world.reminders).toHaveLength(0);
+  });
+
+  it('is honest when notifications are off', async () => {
+    const world = createWorld();
+    world.setAlert('no-permission');
+    await world.send('Remind me to take my medicine every day at 8 AM');
+    const reply = await world.send('Save');
+    expect(reply.text).toBe(
+      'I saved the reminder "Take my medicine" for every day at 8:00 AM, but notifications are off, so it can\'t alert you.',
+    );
+    expect(reply.buttons).toEqual(['open-settings']);
+  });
+
+  it('lists a daily reminder by its time of day', async () => {
+    const world = createWorld();
+    await world.send('Remind me to take my medicine every day at 8 AM');
+    await world.send('Save');
+    const list = await world.send('What reminders do I have?');
+    expect(list.items).toEqual([
+      expect.objectContaining({ title: 'Take my medicine', detail: 'Every day at 8:00 AM' }),
+    ]);
+  });
+
+  it('never asks the model about a daily reminder', async () => {
+    const model = jest.fn(async (): Promise<Command[]> => []);
+    const world = createWorld({ model });
+    await world.send('Remind me every morning at 8 to take my vitamins');
+    expect(model).not.toHaveBeenCalled();
+    expect(world.state.pending?.question.kind).toBe('confirm');
   });
 });

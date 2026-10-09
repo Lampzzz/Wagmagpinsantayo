@@ -2,8 +2,8 @@ import type { Reminder } from '@/features/reminders';
 import type { Task, TaskChanges } from '@/features/tasks';
 import { EMERGENCY_NUMBER } from '@/lib/phone';
 import { capitalize } from '@/utils/capitalize';
-import { formatTime, formatWhen } from '@/utils/format-when';
-import { parseWhen } from '@/utils/parse-when';
+import { formatDay, formatTime, formatWhen } from '@/utils/format-when';
+import { parseWhen, type DayRef, type WhenParts } from '@/utils/parse-when';
 import { dayWindow, resolveWhen, type WhenPurpose } from '@/utils/resolve-when';
 
 import type {
@@ -44,6 +44,7 @@ const MAX_TITLE_LENGTH = 200;
 const PRONOUN_TARGET = /^(?:it|that|this|that one|this one)$/i;
 const NO_DATE = /^(?:no date|no due date|no deadline|none|no|nope|skip|without a date)$/i;
 const REMINDER_TIME_SUGGESTIONS = ['In 10 minutes', 'In 1 hour', 'Tonight', 'Tomorrow 9 AM'];
+const DAILY_TIME_SUGGESTIONS = ['At 8 AM', 'At 12 PM', 'At 6 PM', 'At 9 PM'];
 const TODAY_TIME_SUGGESTIONS = ['In 1 hour', 'At 6 PM', 'Tonight'];
 const DUE_SUGGESTIONS = ['Today', 'Tomorrow', 'Next week', 'No date'];
 
@@ -233,6 +234,7 @@ function resolveAddReminder(
     if (focus?.entity === 'task') taskId = focused.id;
   }
   if (!title) return askFor(command, 'title', 'What should I remind you about?', []);
+  if (command.repeat === 'daily') return proposeDailyReminder(command, title, taskId, now);
   if (!command.when) {
     return askFor(command, 'when', 'When should I remind you?', REMINDER_TIME_SUGGESTIONS);
   }
@@ -243,6 +245,60 @@ function resolveAddReminder(
   });
   const time = readWhen(command, command.when, 'reminder', now, null, (at) => build(at));
   return 'kind' in time ? time : ready(build(time.at));
+}
+
+// "Remind you every day at 8:00 AM: "Take my medicine"? The first one is tomorrow."
+function proposeDailyReminder(
+  command: Extract<Command, { kind: 'add-reminder' }>,
+  title: string,
+  taskId: number | null,
+  now: number,
+): Resolution {
+  if (!command.when) {
+    return askFor(command, 'when', 'What time every day?', DAILY_TIME_SUGGESTIONS);
+  }
+  const parts = parseWhen(command.when, { loose: true });
+  const at = parts && firstDailyTime(parts, now);
+  if (!at) {
+    return askFor(
+      command,
+      'when',
+      `I couldn't read "${command.when.trim()}" as a time of day. What time every day?`,
+      DAILY_TIME_SUGGESTIONS,
+    );
+  }
+  return {
+    kind: 'ask',
+    question: {
+      kind: 'confirm',
+      prompt: `Remind you every day at ${formatTime(at)}: "${title}"? The first one is ${formatDay(at, now)}.`,
+      action: {
+        kind: 'create-reminder',
+        reminder: { title, scheduledAt: at, taskId, repeat: 'daily' },
+      },
+      yesLabel: 'Save',
+      noLabel: 'Cancel',
+    },
+  };
+}
+
+/**
+ * When a daily reminder first rings: on the day the user named, if any, otherwise
+ * today, or tomorrow once today's time has passed. A bare hour reads as on any named
+ * day, so "every day at 8" is 8 AM and "every day at 5" is 5 PM.
+ */
+function firstDailyTime(parts: WhenParts, now: number): number | null {
+  if (parts.kind !== 'moment' || !parts.time) return null;
+  const today: DayRef = { kind: 'in-days', days: 0 };
+  const tomorrow: DayRef = { kind: 'in-days', days: 1 };
+  for (const day of [parts.day ?? today, today, tomorrow]) {
+    const resolved = resolveWhen(
+      { kind: 'moment', day, time: parts.time },
+      { now, purpose: 'reminder' },
+    );
+    if (resolved.kind === 'ok') return resolved.at;
+  }
+  return null;
 }
 
 function listTasks(
@@ -584,8 +640,12 @@ function pick(
 }
 
 function describeItem(entity: Entity, item: Item, now: number): string {
-  if (entity === 'reminder')
-    return capitalize(formatWhen((item as Reminder).scheduledAt, true, now));
+  if (entity === 'reminder') {
+    const { scheduledAt, repeat } = item as Reminder;
+    return repeat === 'daily'
+      ? `Every day at ${formatTime(scheduledAt)}`
+      : capitalize(formatWhen(scheduledAt, true, now));
+  }
   const task = item as Task;
   if (task.status === 'done') return 'Done';
   return task.dueAt === null ? 'No date' : `Due ${formatWhen(task.dueAt, task.dueHasTime, now)}`;

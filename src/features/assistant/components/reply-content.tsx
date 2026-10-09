@@ -145,7 +145,10 @@ function Answers({ question, onPick, onConfirm, onSend, onEdit }: AnswersProps) 
       );
     case 'confirm': {
       const { action } = question;
-      const destructive = action.kind === 'delete-task' || action.kind === 'delete-reminder';
+      const destructive =
+        action.kind === 'delete-task' ||
+        action.kind === 'delete-reminder' ||
+        action.kind === 'call-emergency';
       const edit =
         onEdit && action.kind === 'create-task'
           ? () => {

@@ -1,12 +1,15 @@
 export {
   cancelNotification,
   configureNotifications,
+  dismissNotification,
   ensureNotificationPermission,
   getNotificationPermission,
   getScheduledNotifications,
   onNotificationOpened,
+  onNotificationReceived,
   scheduleNotification,
   type NotificationData,
   type NotificationPermission,
+  type NotificationTap,
   type ScheduledNotification,
 } from './notifications';

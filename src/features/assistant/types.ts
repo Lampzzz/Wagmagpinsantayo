@@ -37,9 +37,15 @@ export type Command =
   /**
    * An empty title, or one with "it", links the reminder to the task just touched.
    * `repeat: 'daily'` rings every day at the time of day in `when`, and is shown back
-   * for a yes before it's saved.
+   * for a yes before it's saved. `alarm` rings it like an alarm.
    */
-  | { kind: 'add-reminder'; title: string; when?: string; repeat?: ReminderRepeat }
+  | {
+      kind: 'add-reminder';
+      title: string;
+      when?: string;
+      repeat?: ReminderRepeat;
+      alarm?: boolean;
+    }
   | {
       kind: 'list-tasks';
       status?: TaskListStatus;

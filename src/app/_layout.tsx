@@ -53,6 +53,15 @@ export default function RootLayout() {
           <Stack.Screen name="reminders/new" options={{ title: 'New reminder' }} />
           <Stack.Screen name="reminders/[id]" options={{ title: 'Reminder' }} />
           <Stack.Screen
+            name="alarm/[id]"
+            options={{
+              title: 'Alarm',
+              presentation: 'fullScreenModal',
+              headerShown: false,
+              gestureEnabled: false,
+            }}
+          />
+          <Stack.Screen
             name="ai-setup"
             options={{ title: 'On-device AI', presentation: 'modal' }}
           />

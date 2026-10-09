@@ -26,12 +26,14 @@ Status at the code freeze (10:00 AM, Oct 10).
 | 9   | Every-day reminders      | ✅ Done | 7/7      |                        |
 | 10  | Emergency call           | ✅ Done | 8/8      |                        |
 | 11  | Conversation history     | ✅ Done | 4/4      |                        |
+| 12  | Alarm reminders          | ✅ Done | 8/8      |                        |
 | –   | Behavior across the app  | ✅ Done | 6/6      |                        |
 
 Checked on the Android emulator: Quick Add → task and reminder; Save, Edit and Cancel in
 Pinsan's bubble; the ☰ menu; Emergency → the dialer with 911 and no auto-dial; a journal entry
 saved; a daily reminder that rang and rescheduled itself for the next day; Conversations →
-History by day, and Clear.
+History by day, and Clear; an alarm reminder that opened the alarm screen and rang, Snooze
+and Done from the screen and from the alert, and "Set an alarm in 1 minute to stretch".
 
 ---
 
@@ -40,7 +42,7 @@ History by day, and Clear.
 Setup the features depend on.
 
 - [x] Migrate from template `App.tsx` to Expo Router in `src/app`
-- [x] SQLite database for notes, tasks, reminders and the conversation history (migrations 1–4)
+- [x] SQLite database for notes, tasks, reminders and the conversation history (migrations 1–5)
 - [x] Local AI models wired into the app (React Native ExecuTorch: LFM2.5 1.2B
       text model, Whisper base.en speech model)
 - [x] Models download once, when the user taps Download on the AI setup screen
@@ -152,6 +154,7 @@ done or deleted.
 - [x] Create, edit, cancel and delete reminders; mark them done or dismissed
 - [x] Local notification fires at the set time, even if the app is closed
 - [x] Notification shows the title and time; tapping it opens that reminder
+      (or, for an alarm, its alarm screen: section 12)
 - [x] A new time reschedules the notification; cancelling, finishing or
       deleting the reminder removes it
 - [x] A reminder can be set for a task; finishing or deleting the task keeps
@@ -293,6 +296,31 @@ Everything said to Pinsan, kept on the phone and read back by day.
       day headers
 - [x] Clear deletes it after a confirmation; notes, tasks and reminders stay
 - [x] A failed save never breaks the conversation
+
+## 12. Alarm reminders
+
+A reminder can ring like an alarm instead of a plain notification, for things that
+mustn't be missed.
+
+- [x] The reminder editor has a "Ring as alarm" switch, off by default
+- [x] "Set an alarm for 7 AM to take my medicine", "Wake me up at 6", "Set a timer
+      for 20 minutes", "… with an alarm" and "Set an alarm every day at 8 AM to …"
+      make an alarm; Pinsan replies "Alarm set for …"
+- [x] Rings on its own "Reminder alarms" channel: alarm volume, heard on silent,
+      a long vibration; the alert stays in the tray with Snooze and Done buttons
+- [x] With the app open, a full-screen alarm screen opens and rings (a beeping
+      tone and vibration) until Done or Snooze 10 min; tapping the alert opens the
+      same screen without ringing
+- [x] Snooze rings again in 10 minutes; Done, Dismiss, Cancel, an edit or a delete
+      stops a ringing or snoozed alarm
+- [x] The reminders list marks alarms with an alarm clock icon
+- [x] Plain reminders, and every reminder saved before alarms, stay plain notifications
+- [x] Saved in SQLite (migration 5: `reminders.alarm`)
+
+Limits: with the app closed, the phone plays its alert sound once rather than on a
+loop, and the alarm can't take over the lock screen; both need native changes after
+the hackathon. The in-app tone follows the media volume and stops when the screen
+turns off or the app is left.
 
 ## Behavior across the app
 

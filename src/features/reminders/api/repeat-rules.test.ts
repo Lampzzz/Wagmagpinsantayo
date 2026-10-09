@@ -143,4 +143,13 @@ describe('isAlertCurrent', () => {
     expect(isAlertCurrent(once, alertData(4, { kind: 'daily', at: once.at }))).toBe(false);
     expect(isAlertCurrent(daily, alertData(4, { kind: 'once', at: daily.at }))).toBe(false);
   });
+
+  it('never mistakes an alarm for a plain alert, or the other way round', () => {
+    expect(alertData(4, once, true)).toEqual({ reminderId: 4, scheduledAt: once.at, alarm: true });
+    expect(isAlertCurrent(once, alertData(4, once, true), true)).toBe(true);
+    expect(isAlertCurrent(daily, alertData(4, daily, true), true)).toBe(true);
+    // Alerts saved before alarms existed are plain.
+    expect(isAlertCurrent(once, alertData(4, once), true)).toBe(false);
+    expect(isAlertCurrent(once, alertData(4, once, true))).toBe(false);
+  });
 });

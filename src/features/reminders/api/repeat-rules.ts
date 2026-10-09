@@ -58,21 +58,27 @@ function firstDailyRing(at: number, now: number): number {
   return sameDay > now ? sameDay : atTime(today, hour, minute, 1);
 }
 
-/** The data a reminder's notification carries, which `isAlertCurrent` reads back. */
-export function alertData(reminderId: number, plan: AlertPlan): NotificationData {
-  return plan.kind === 'daily'
-    ? { reminderId, scheduledAt: plan.at, repeat: 'daily' }
-    : { reminderId, scheduledAt: plan.at };
+/**
+ * The data a reminder's notification carries, which `isAlertCurrent` reads back.
+ * An alarm's data says so; a plain reminder's data has no `alarm` key.
+ */
+export function alertData(reminderId: number, plan: AlertPlan, alarm = false): NotificationData {
+  const data: NotificationData =
+    plan.kind === 'daily'
+      ? { reminderId, scheduledAt: plan.at, repeat: 'daily' }
+      : { reminderId, scheduledAt: plan.at };
+  return alarm ? { ...data, alarm: true } : data;
 }
 
 /**
  * Whether a pending notification, read back through its data, already does what
- * `plan` needs. A daily alert matches on its time of day only, so it isn't
- * rescheduled every day.
+ * `plan` needs, as an alarm or a plain notification. A daily alert matches on its
+ * time of day only, so it isn't rescheduled every day.
  */
-export function isAlertCurrent(plan: AlertPlan, data: NotificationData): boolean {
+export function isAlertCurrent(plan: AlertPlan, data: NotificationData, alarm = false): boolean {
   const { scheduledAt, repeat } = data;
   if (typeof scheduledAt !== 'number') return false;
+  if ((data.alarm === true) !== alarm) return false;
   if (plan.kind === 'once') return repeat !== 'daily' && scheduledAt === plan.at;
   return repeat === 'daily' && isSameTimeOfDay(scheduledAt, plan.at);
 }

@@ -15,6 +15,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
+import { Icon } from '@/components/ui/icon';
 import { Notice } from '@/components/ui/notice';
 import { Text } from '@/components/ui/text';
 import {
@@ -154,7 +155,12 @@ const ReminderRow = memo(function ReminderRow({
     <View style={styles.row}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={[reminder.title, detail, pastDue ? 'past due' : null]
+        accessibilityLabel={[
+          reminder.title,
+          reminder.alarm ? 'alarm' : null,
+          detail,
+          pastDue ? 'past due' : null,
+        ]
           .filter(Boolean)
           .join(', ')}
         accessibilityHint="Opens the reminder"
@@ -167,7 +173,14 @@ const ReminderRow = memo(function ReminderRow({
         >
           {reminder.title}
         </Text>
-        <Text style={[styles.rowDetail, pastDue && styles.pastDueDetail]}>{detail}</Text>
+        <View style={styles.detailLine}>
+          {reminder.alarm && (
+            <Icon ios="alarm.fill" android="alarm" color={COLORS.primaryDark} size={16} />
+          )}
+          <Text style={[styles.rowDetail, styles.detailText, pastDue && styles.pastDueDetail]}>
+            {detail}
+          </Text>
+        </View>
         {reminder.taskTitle !== null && (
           <Text style={styles.rowDetail} numberOfLines={1}>
             For: {reminder.taskTitle}
@@ -289,6 +302,14 @@ const styles = StyleSheet.create({
   rowDetail: {
     fontSize: FONT_SIZES.caption,
     color: COLORS.textMuted,
+  },
+  detailLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+  },
+  detailText: {
+    flexShrink: 1,
   },
   pastDueDetail: {
     color: COLORS.warning,

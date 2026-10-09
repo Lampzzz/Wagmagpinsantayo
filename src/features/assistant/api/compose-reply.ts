@@ -266,7 +266,7 @@ function reminderSavedText(action: Action, reminder: Reminder, alert: AlertOutco
       return `${saved}, but couldn't schedule its alert. I'll try again next time you open the app.`;
     }
     if (alert === 'none') return `${saved}, but that time has already passed.`;
-    return `Reminder set for ${when}${soon}: ${reminder.title}.`;
+    return `${reminder.alarm ? 'Alarm' : 'Reminder'} set for ${when}${soon}: ${reminder.title}.`;
   }
 
   const sentences: string[] = [];

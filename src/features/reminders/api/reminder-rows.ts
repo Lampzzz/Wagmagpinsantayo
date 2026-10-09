@@ -8,6 +8,7 @@ type ReminderRow = {
   title: string;
   scheduled_at: number;
   repeat: string | null;
+  alarm: number;
   status: string;
   notification_id: string | null;
   task_id: number | null;
@@ -20,6 +21,7 @@ type ReminderFields = Partial<{
   title: string;
   scheduledAt: number;
   repeat: ReminderRepeat | null;
+  alarm: boolean;
   status: ReminderStatus;
   notificationId: string | null;
 }>;
@@ -27,7 +29,7 @@ type ReminderFields = Partial<{
 const STATUSES: readonly string[] = ['scheduled', 'completed', 'dismissed', 'cancelled'];
 
 // The linked task's title comes along for display.
-const SELECT_REMINDERS = `SELECT r.id, r.title, r.scheduled_at, r.repeat, r.status,
+const SELECT_REMINDERS = `SELECT r.id, r.title, r.scheduled_at, r.repeat, r.alarm, r.status,
     r.notification_id, r.task_id, t.title AS task_title, r.created_at, r.updated_at
   FROM reminders r LEFT JOIN tasks t ON t.id = r.task_id`;
 
@@ -48,16 +50,18 @@ export async function insertReminder(input: {
   title: string;
   scheduledAt: number;
   repeat: ReminderRepeat | null;
+  alarm: boolean;
   taskId: number | null;
 }): Promise<number> {
   const now = Date.now();
   const db = await getDatabase();
   const { lastInsertRowId } = await db.runAsync(
-    `INSERT INTO reminders (title, scheduled_at, repeat, task_id, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO reminders (title, scheduled_at, repeat, alarm, task_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
     input.title,
     input.scheduledAt,
     input.repeat,
+    input.alarm ? 1 : 0,
     input.taskId,
     now,
     now,
@@ -87,6 +91,10 @@ export async function updateReminderRow(
   if (fields.repeat !== undefined) {
     assignments.push('repeat = ?');
     values.push(fields.repeat);
+  }
+  if (fields.alarm !== undefined) {
+    assignments.push('alarm = ?');
+    values.push(fields.alarm ? 1 : 0);
   }
   if (fields.status !== undefined) {
     assignments.push('status = ?');
@@ -132,6 +140,7 @@ function toReminder(row: ReminderRow, now: number): Reminder {
     title: row.title,
     scheduledAt: repeat ? nextDailyOccurrence(row.scheduled_at, now) : row.scheduled_at,
     repeat,
+    alarm: row.alarm === 1,
     status: STATUSES.includes(row.status) ? (row.status as ReminderStatus) : 'scheduled',
     notificationId: row.notification_id,
     taskId: row.task_id,

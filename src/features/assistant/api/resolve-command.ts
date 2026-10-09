@@ -242,13 +242,14 @@ function resolveAddReminder(
 
   const build = (at: number): Action => ({
     kind: 'create-reminder',
-    reminder: { title, scheduledAt: at, taskId },
+    reminder: { title, scheduledAt: at, taskId, ...(command.alarm ? { alarm: true } : {}) },
   });
   const time = readWhen(command, command.when, 'reminder', now, null, (at) => build(at));
   return 'kind' in time ? time : ready(build(time.at));
 }
 
 // "Remind you every day at 8:00 AM: "Take my medicine"? The first one is tomorrow."
+// An alarm asks "Ring an alarm every day at 8:00 AM: …" instead.
 function proposeDailyReminder(
   command: Extract<Command, { kind: 'add-reminder' }>,
   title: string,
@@ -272,10 +273,16 @@ function proposeDailyReminder(
     kind: 'ask',
     question: {
       kind: 'confirm',
-      prompt: `Remind you ${reminderWhen({ scheduledAt: at, repeat: 'daily' }, now)}: "${title}"? The first one is ${formatDay(at, now)}.`,
+      prompt: `${command.alarm ? 'Ring an alarm' : 'Remind you'} ${reminderWhen({ scheduledAt: at, repeat: 'daily' }, now)}: "${title}"? The first one is ${formatDay(at, now)}.`,
       action: {
         kind: 'create-reminder',
-        reminder: { title, scheduledAt: at, taskId, repeat: 'daily' },
+        reminder: {
+          title,
+          scheduledAt: at,
+          taskId,
+          repeat: 'daily',
+          ...(command.alarm ? { alarm: true } : {}),
+        },
       },
       yesLabel: 'Save',
       noLabel: 'Cancel',

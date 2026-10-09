@@ -214,6 +214,7 @@ src/app/
   notes/new, [id]          Note editor; notes/voice records a voice note (modal)
   tasks/new, [id]          Task editor
   reminders/new, [id]      Reminder editor
+  alarm/[id]               A reminder ringing as an alarm, full screen: Done and Snooze
   ai-setup.tsx             Downloads the on-device models (modal)
   extract-tasks.tsx        Reviews the tasks found in a note (form sheet)
   studio.tsx               Development only: Pinsan on grey for checking the model (see above)
@@ -233,7 +234,9 @@ src/app/
 - The root layout waits for the fonts before it renders the navigator, so the reminder
   alerts run from `<ReminderAlerts />` beside it. A notification tap that launches the app
   navigates at once, and Expo Router throws if that happens before a navigator is mounted.
-  The tap pushes `reminders/[id]` over Home.
+  The tap pushes `reminders/[id]` over Home, or `alarm/[id]` for an alarm reminder. An alarm
+  that goes off while the app is on screen pushes `alarm/[id]` at once, ringing: a looping
+  tone made in code and vibration, until Done or Snooze.
 
 Later, after the MVP: `health/`, pushed from the menu.
 

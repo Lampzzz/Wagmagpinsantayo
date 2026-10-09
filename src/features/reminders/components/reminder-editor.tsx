@@ -114,6 +114,7 @@ function ReminderForm({ reminder, taskId, onClose }: ReminderFormProps) {
   const [title, setTitle] = useState(reminder?.title ?? '');
   const [whenText, setWhenText] = useState(initialWhen);
   const [repeatDaily, setRepeatDaily] = useState(reminder?.repeat === 'daily');
+  const [alarm, setAlarm] = useState(reminder?.alarm ?? false);
   const [saving, setSaving] = useState(false);
   const newTaskTitle = useTaskTitle(reminder ? null : taskId, setTitle);
 
@@ -136,12 +137,15 @@ function ReminderForm({ reminder, taskId, onClose }: ReminderFormProps) {
       const saved = reminder
         ? await updateReminder(
             reminder.id,
-            unchanged ? { title, repeat } : { title, scheduledAt: whenInput.at, repeat },
+            unchanged
+              ? { title, repeat, alarm }
+              : { title, scheduledAt: whenInput.at, repeat, alarm },
           )
         : await createReminder({
             title,
             scheduledAt: whenInput.at,
             repeat: repeat ?? undefined,
+            alarm,
             taskId,
           });
       explainAlert(saved.alert, onClose);
@@ -228,6 +232,16 @@ function ReminderForm({ reminder, taskId, onClose }: ReminderFormProps) {
             firstAt={whenInput.kind === 'ok' ? whenInput.at : null}
             now={now}
           />
+          <SwitchRow
+            label="Ring as alarm"
+            hint={
+              alarm
+                ? 'Rings at alarm volume, even on silent, with Snooze and Done.'
+                : 'Rings as a normal notification.'
+            }
+            on={alarm}
+            onChange={setAlarm}
+          />
           {linkedTaskId !== null && linkedTaskTitle !== null && (
             <Pressable
               accessibilityRole="button"
@@ -308,7 +322,7 @@ type RepeatSwitchProps = {
   now: number;
 };
 
-/** "Repeat every day", off by default. The whole row toggles it, for a big tap target. */
+/** "Repeat every day", off by default. */
 function RepeatSwitch({ on, onChange, firstAt, now }: RepeatSwitchProps) {
   const first = firstAt === null ? null : nextDailyOccurrence(firstAt, now);
   const hint = !on
@@ -316,18 +330,31 @@ function RepeatSwitch({ on, onChange, firstAt, now }: RepeatSwitchProps) {
     : first === null
       ? 'Rings every day at the time above.'
       : `Rings every day at ${formatTime(first)}, starting ${formatDay(first, now)}.`;
+  return <SwitchRow label="Repeat every day" hint={hint} on={on} onChange={onChange} />;
+}
+
+type SwitchRowProps = {
+  label: string;
+  /** Says what the current setting does. */
+  hint: string;
+  on: boolean;
+  onChange: (on: boolean) => void;
+};
+
+/** A switch with a label and a hint. The whole row toggles it, for a big tap target. */
+function SwitchRow({ label, hint, on, onChange }: SwitchRowProps) {
   return (
     <Pressable
       accessibilityRole="switch"
-      accessibilityLabel="Repeat every day"
+      accessibilityLabel={label}
       accessibilityHint={hint}
       accessibilityState={{ checked: on }}
       onPress={() => onChange(!on)}
-      style={({ pressed }) => [styles.repeat, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.switchRow, pressed && styles.pressed]}
     >
-      <View style={styles.repeatText}>
-        <Text style={styles.repeatLabel}>Repeat every day</Text>
-        <Text style={styles.repeatHint}>{hint}</Text>
+      <View style={styles.switchText}>
+        <Text style={styles.switchLabel}>{label}</Text>
+        <Text style={styles.switchHint}>{hint}</Text>
       </View>
       {/* Shows the state only: the row takes the tap, so it never toggles twice. */}
       <View
@@ -430,7 +457,7 @@ const styles = StyleSheet.create({
   statusActions: {
     gap: SPACING.sm,
   },
-  repeat: {
+  switchRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.md,
@@ -440,16 +467,16 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     ...SHADOWS.card,
   },
-  repeatText: {
+  switchText: {
     flex: 1,
     gap: 2,
   },
-  repeatLabel: {
+  switchLabel: {
     fontFamily: FONTS.bodyBold,
     fontSize: FONT_SIZES.body,
     color: COLORS.text,
   },
-  repeatHint: {
+  switchHint: {
     fontSize: FONT_SIZES.caption,
     lineHeight: 18,
     color: COLORS.textMuted,

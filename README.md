@@ -34,7 +34,8 @@ Status as of the code freeze (10:00 AM, Oct 10, Manila time):
 Checked on the Android emulator tonight: Quick Add → task and reminder; Save, Edit and Cancel in
 Pinsan's bubble; the ☰ menu; Emergency → the dialer with 911 and no auto-dial; a journal entry
 saved; a daily reminder that rang and rescheduled itself for the next day; Conversations →
-History by day, and Clear.
+History by day, and Clear; an alarm reminder that opened its alarm screen and rang, with Snooze
+and Done.
 
 | Feature                 | What it does                                                                                                                                                                                                                                                                                                                                                                                            | Status                          |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
@@ -44,6 +45,7 @@ History by day, and Clear.
 | Talk to Pinsan by voice | Tap the mic to start and tap it again to stop. The camera glides in to Pinsan's face, your words appear live on a paper note, and he answers in his bubble. "Start over" on the note throws your words away, and he listens again. Replies show on screen and aren't read aloud. Needs the AI download.                                                                                                 | Done, not yet tested on a phone |
 | Smart Quick Add         | "Pay electric bill tomorrow 5pm" becomes a proposal with Save, Edit and Cancel. Save adds the task and a reminder at 5 PM. Edit opens the task editor filled in, with a "Remind me" switch. Code reads the sentence, so this works without the AI model.                                                                                                                                                | Done                            |
 | Every-day reminders     | "Remind me to take my medicine every day at 8 AM", "every morning at 8" or "daily at 9pm". Pinsan shows it back before saving. The reminder editor has a "Repeat every day" switch. Done or Dismiss on a daily reminder only skips today.                                                                                                                                                               | Done                            |
+| Alarm reminders         | A "Ring as alarm" switch in the reminder editor, or say "Set an alarm for 7 AM to take my medicine" or "Wake me up at 6". It rings at alarm volume, even on silent, and the alert has Snooze and Done. With the app open, a full-screen alarm screen rings until Done or Snooze 10 min.                                                                                                                 | Done                            |
 | Journal                 | ☰ → Journal: your notes grouped by the day you wrote them, a strip of days to jump between, search, "Write today's entry" and a mic for a voice entry. Saying or typing "write in my journal: …", "journal: …", "dear journal …" or "note: …" makes Pinsan ask "Save this to today's journal?"                                                                                                         | Done                            |
 | Notes                   | Write, edit and delete notes. Changes save automatically. Notes are the journal's entries.                                                                                                                                                                                                                                                                                                              | Done                            |
 | Voice notes             | Speak and see a live transcript. The on-device AI drafts a title and a tidy body, and "list …" becomes bullet points. You edit, then save or discard. If the draft adds a number or date you never said, the app retries once, then falls back to your exact words.                                                                                                                                     | Done, not yet tested on a phone |
@@ -68,6 +70,8 @@ walking tracker.
    - "Pay electric bill tomorrow 5pm": a task with a reminder, after you tap Save.
    - "Remind me in 10 minutes to stretch": a reminder.
    - "Remind me to take my medicine every day at 8 AM": an every-day reminder.
+   - "Wake me up at 6 AM" or "Set an alarm for 8 AM to take my medicine": a reminder that rings
+     like an alarm.
    - "Journal: we finished the slides today": an entry in today's journal.
    - "What tasks do I have today?" or "Find tasks about groceries": a list in the bubble.
    - "Call emergency": asks first, then opens the dialer with 911.
@@ -92,17 +96,17 @@ walking tracker.
 
 **On the phone, with no internet:**
 
-| Part                                           | How                                                                                                                                            |
-| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| Text AI                                        | LFM2.5 1.2B (Liquid AI) through React Native ExecuTorch                                                                                        |
-| Speech to text                                 | Whisper base.en (OpenAI), with the FSMN voice-activity model, through React Native ExecuTorch                                                  |
-| Dates and times                                | Our own parser in `src/utils/parse-when.ts` and `src/utils/resolve-when.ts`, with tests. No AI.                                                |
-| Quick Add, journal, every-day and help phrases | Fixed rules in `src/features/assistant/api/`, with tests. No AI.                                                                               |
-| Notes, tasks, reminders, conversation history  | SQLite on the phone (`expo-sqlite`)                                                                                                            |
-| Reminder alerts                                | Local notifications scheduled on the phone (`expo-notifications`), including the phone's own daily alert for every-day reminders               |
-| Emergency call                                 | A `tel:` link opens the phone's dialer with 911 filled in. No phone permission, and nothing is dialed until you press call.                    |
-| 3D scene and fonts                             | Drawn on the phone (three.js, React Three Fiber, `expo-gl`). Fonts are bundled.                                                                |
-| Spoken replies                                 | Off for now (`READ_REPLIES_ALOUD = false`). When on, the phone's own text-to-speech voice (`expo-speech`). Screen readers announce each reply. |
+| Part                                           | How                                                                                                                                                                                                                        |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Text AI                                        | LFM2.5 1.2B (Liquid AI) through React Native ExecuTorch                                                                                                                                                                    |
+| Speech to text                                 | Whisper base.en (OpenAI), with the FSMN voice-activity model, through React Native ExecuTorch                                                                                                                              |
+| Dates and times                                | Our own parser in `src/utils/parse-when.ts` and `src/utils/resolve-when.ts`, with tests. No AI.                                                                                                                            |
+| Quick Add, journal, every-day and help phrases | Fixed rules in `src/features/assistant/api/`, with tests. No AI.                                                                                                                                                           |
+| Notes, tasks, reminders, conversation history  | SQLite on the phone (`expo-sqlite`)                                                                                                                                                                                        |
+| Reminder alerts                                | Local notifications scheduled on the phone (`expo-notifications`), including the phone's own daily alert for every-day reminders. Alarm reminders use their own alarm channel, and the alarm screen's tone is made in code |
+| Emergency call                                 | A `tel:` link opens the phone's dialer with 911 filled in. No phone permission, and nothing is dialed until you press call.                                                                                                |
+| 3D scene and fonts                             | Drawn on the phone (three.js, React Three Fiber, `expo-gl`). Fonts are bundled.                                                                                                                                            |
+| Spoken replies                                 | Off for now (`READ_REPLIES_ALOUD = false`). When on, the phone's own text-to-speech voice (`expo-speech`). Screen readers announce each reply.                                                                             |
 
 Only one AI model is in memory at a time. Whisper is loaded while you record and released before
 the text model runs.
@@ -253,7 +257,7 @@ src/
     assistant/      Fixed rules, Quick Add, on-device AI commands, replies, conversation history
     notes/          Notes, journal, voice notes, Summarize, Extract Tasks
     tasks/          Tasks
-    reminders/      Reminders, every-day repeats and alerts
+    reminders/      Reminders, every-day repeats, alarms and alerts
     ai-setup/       One-time model download screen
   components/       ui/ building blocks (buttons, chips, text fields); common/ date field
   lib/
@@ -277,7 +281,7 @@ docs/               Features, front-end direction, planning, submission answers,
 | App           | Expo SDK 57, React Native 0.86, React 19.2, TypeScript (strict), Expo Router, Expo development build (`expo-dev-client`)          |
 | On-device AI  | React Native ExecuTorch 0.10.5 (`react-native-executorch`, Software Mansion), built on ExecuTorch, PyTorch's on-device runtime    |
 | Data          | `expo-sqlite`, `expo-file-system`                                                                                                 |
-| Alerts, voice | `expo-notifications`, `react-native-audio-api` (microphone), `expo-speech` (spoken replies, off for now)                          |
+| Alerts, voice | `expo-notifications`, `react-native-audio-api` (microphone, alarm tone), `expo-speech` (spoken replies, off for now)              |
 | 3D            | three.js 0.186, React Three Fiber 9.8, `expo-gl`, `expo-linear-gradient`                                                          |
 | UI            | Reanimated 4, React Native Gesture Handler, Keyboard Controller, Screens, Safe Area Context, `expo-symbols`, Zustand              |
 | Fonts         | Fredoka and Nunito (SIL Open Font License) through `@expo-google-fonts`                                                           |
@@ -293,6 +297,9 @@ docs/               Features, front-end direction, planning, submission answers,
   the app in Settings. The Reminders screen shows a note with **Open settings**. A force-stopped
   app gets no alerts until it's opened again.
 - Every day is the only repeat a reminder can have.
+- With the app closed, an alarm reminder plays the phone's alert sound once, not on a loop, and
+  it can't take over the lock screen. The alarm screen rings only while the app is open, at media
+  volume.
 - The emergency number is 911, the Philippines' national hotline. There are no emergency
   contacts or medical ID yet, and the app must be open to ask for help.
 - Pinsan doesn't read replies aloud. They show in his bubble, and screen readers announce them.

@@ -184,6 +184,34 @@ describe('parseCommandRules', () => {
     expect(parseCommandRules(text)).toEqual(expected);
   });
 
+  describe('alarms', () => {
+    it.each([
+      [
+        'Set an alarm for 7 AM to take my medicine.',
+        { title: 'take my medicine', when: 'for 7 AM' },
+      ],
+      ['Wake me up at 6 AM', { title: 'Wake up', when: 'at 6 AM' }],
+      ['Wake me up', { title: 'Wake up' }],
+      ['Set an alarm for 6:30 tomorrow', { title: 'Alarm', when: 'for 6:30 tomorrow' }],
+      ['Remind me to call Mom at 5 PM with an alarm', { title: 'call Mom', when: 'at 5 PM' }],
+    ])('reads %p as a reminder that rings like an alarm', (text, fields) => {
+      expect(parseCommandRules(text)).toEqual([{ kind: 'add-reminder', ...fields, alarm: true }]);
+    });
+
+    it('splits an alarm off another request', () => {
+      expect(parseCommandRules('Create a task to buy milk and set an alarm for 7 AM')).toEqual([
+        { kind: 'add-task', title: 'buy milk' },
+        { kind: 'add-reminder', title: 'Alarm', when: 'for 7 AM', alarm: true },
+      ]);
+    });
+
+    it('leaves a plain reminder plain', () => {
+      expect(parseCommandRules('Remind me at 5 PM to call Mom')).toEqual([
+        { kind: 'add-reminder', title: 'call Mom', when: 'at 5 PM' },
+      ]);
+    });
+  });
+
   it.each([
     'Finish the report by Friday',
     "What's the weather like?",
@@ -228,15 +256,18 @@ describe('parseCommandRules: said the way people talk', () => {
       'Tell me to stretch in an hour',
       [{ kind: 'add-reminder', title: 'stretch', when: 'in an hour' }],
     ],
-    ['Wake me up at 6 AM', [{ kind: 'add-reminder', title: 'Wake up', when: 'at 6 AM' }]],
-    ['Wake me up', [{ kind: 'add-reminder', title: 'Wake up' }]],
+    [
+      'Wake me up at 6 AM',
+      [{ kind: 'add-reminder', title: 'Wake up', when: 'at 6 AM', alarm: true }],
+    ],
+    ['Wake me up', [{ kind: 'add-reminder', title: 'Wake up', alarm: true }]],
     [
       'Set an alarm for 5:30 tomorrow morning',
-      [{ kind: 'add-reminder', title: 'Alarm', when: 'for 5:30 tomorrow morning' }],
+      [{ kind: 'add-reminder', title: 'Alarm', when: 'for 5:30 tomorrow morning', alarm: true }],
     ],
     [
       'Set a timer for 20 minutes',
-      [{ kind: 'add-reminder', title: 'Timer', when: 'in 20 minutes' }],
+      [{ kind: 'add-reminder', title: 'Timer', when: 'in 20 minutes', alarm: true }],
     ],
     // The time first.
     [

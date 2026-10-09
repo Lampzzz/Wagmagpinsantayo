@@ -55,4 +55,7 @@ export const MIGRATIONS: readonly string[] = [
     created_at INTEGER NOT NULL
   );
   CREATE INDEX conversation_messages_by_time ON conversation_messages (created_at);`,
+
+  // 5: reminders that ring like an alarm. `alarm` is 1 for an alarm, 0 for a plain notification.
+  `ALTER TABLE reminders ADD COLUMN alarm INTEGER NOT NULL DEFAULT 0;`,
 ];

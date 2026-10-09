@@ -86,6 +86,7 @@ function createWorld(options: { model?: AssistantDeps['interpretWithModel']; now
           title: action.reminder.title,
           scheduledAt: action.reminder.scheduledAt,
           repeat: action.reminder.repeat ?? null,
+          alarm: action.reminder.alarm ?? false,
           status: 'scheduled',
           notificationId: alert === 'scheduled' ? 'reminder-x' : null,
           taskId,
@@ -306,6 +307,44 @@ describe('runTurn: reminders', () => {
       'cancelled',
       'scheduled',
       'scheduled',
+    ]);
+  });
+
+  it('sets reminders that ring like an alarm', async () => {
+    const world = createWorld();
+
+    expect((await world.send('Set an alarm for 11 AM to take my medicine.')).text).toBe(
+      'Alarm set for today at 11:00 AM (in 1 hour): Take my medicine.',
+    );
+    expect((await world.send('Wake me up tomorrow at 6 AM')).text).toBe(
+      'Alarm set for tomorrow at 6:00 AM (in 20 hours): Wake up.',
+    );
+    expect((await world.send('Remind me at 5 PM to call mom with an alarm')).text).toBe(
+      'Alarm set for today at 5:00 PM (in 7 hours): Call mom.',
+    );
+    expect(world.reminders.map(({ title, alarm }) => ({ title, alarm }))).toEqual([
+      { title: 'Take my medicine', alarm: true },
+      { title: 'Wake up', alarm: true },
+      { title: 'Call mom', alarm: true },
+    ]);
+
+    await world.send('Remind me at 6 PM to stretch');
+    expect(world.reminders[3]).toMatchObject({ title: 'Stretch', alarm: false });
+  });
+
+  it('shows an every-day alarm back before saving it', async () => {
+    const world = createWorld();
+
+    const proposal = await world.send('Set an alarm every day at 8 AM to take my medicine');
+    expect(proposal.text).toBe(
+      'Ring an alarm every day at 8:00 AM: "Take my medicine"? The first one is tomorrow.',
+    );
+    const reply = await world.send({ kind: 'confirm', yes: true });
+    expect(reply.text).toBe(
+      'Alarm set for every day at 8:00 AM, starting tomorrow: Take my medicine.',
+    );
+    expect(world.reminders).toEqual([
+      expect.objectContaining({ title: 'Take my medicine', repeat: 'daily', alarm: true }),
     ]);
   });
 

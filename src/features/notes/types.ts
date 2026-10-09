@@ -37,3 +37,22 @@ export type NoteSummary = {
   excerpt: string;
   updatedAt: number;
 };
+
+/** A note as the journal shows it: dated by when it was written, with its whole text for search. */
+export type JournalEntry = {
+  id: number;
+  title: string;
+  body: string;
+  createdAt: number;
+};
+
+/** One day of the journal: the entries written that day, newest first. */
+export type JournalDay = {
+  /** The local calendar date, such as "2026-10-06". Stable, so it keys the day's section. */
+  key: string;
+  /** "Today", "Yesterday", "Mon, Oct 6", or "Mon, Oct 6, 2025" in another year. */
+  title: string;
+  /** Local midnight at the start of the day. */
+  startsAt: number;
+  entries: JournalEntry[];
+};

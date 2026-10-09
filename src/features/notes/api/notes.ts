@@ -1,7 +1,7 @@
 import { getDatabase } from '@/lib/db';
 
 import { isEmptyNote } from '../note-rules';
-import type { Note, NoteContent, NoteSummary } from '../types';
+import type { JournalEntry, Note, NoteContent, NoteSummary } from '../types';
 
 type NoteRow = {
   id: number;
@@ -46,6 +46,23 @@ export async function getNoteSummaries(): Promise<NoteSummary[]> {
     title: row.title,
     excerpt: row.excerpt,
     updatedAt: row.updated_at,
+  }));
+}
+
+/**
+ * Every note as a journal entry, newest written first, with its whole body so the
+ * journal can search it. Like the notes list, it loads at once.
+ */
+export async function getJournalEntries(): Promise<JournalEntry[]> {
+  const db = await getDatabase();
+  const rows = await db.getAllAsync<Omit<NoteRow, 'updated_at'>>(
+    'SELECT id, title, body, created_at FROM notes ORDER BY created_at DESC, id DESC',
+  );
+  return rows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    body: row.body,
+    createdAt: row.created_at,
   }));
 }
 

@@ -7,9 +7,12 @@ Code freeze: **10:00 AM, Oct 10** (Manila). Last updated 2:30 AM, Oct 10.
 Everything you asked for is merged into `development` in `C:\dev\pinsan` and checked on the
 emulator. Typecheck, lint, Prettier and all 677 tests pass. Nothing has been pushed.
 
-1. **Phone.** Install the release APK from the 3D session (it installs as an update, so the
-   AI models stay). Allow notifications and **Alarms & reminders** (☰ → Reminders → Open
-   settings), or reminders can be up to an hour late. Check ☰ → AI setup says the AI is ready.
+1. **Phone.** Install the release APK: on the phone, open http://192.168.1.2:8090/PinsanAI.apk
+   (same Wi-Fi as the PC), or copy `C:\Users\villa\Downloads\PinsanAI-2026-10-10.apk`. It's
+   built from `development` 92b3cfe (everything after it is docs only), shows as "Pinsan AI",
+   and installs as an update, so the AI models stay. Allow notifications and **Alarms &
+   reminders** (☰ → Reminders → Open settings), or reminders can be up to an hour late. Check
+   ☰ → AI setup says the AI is ready.
 2. **Test on the phone** what the emulator can't: the mic on Home, voice notes, Summarize and
    Extract Tasks, and a free-form request that needs the model. Measure the
    `[MEASURE ON DEMO PHONE]` numbers in docs/PITCH.md, and flip "Done, not yet tested on a
@@ -82,7 +85,7 @@ the W11 and W12 builders.
 | W12 | Journal by day, every-day reminders (migration 3)                                    | Merged (bd3765c). Emulator OK: day strip, a daily reminder rang and rescheduled for the next day                                    |
 | W13 | Conversation history saved by day (migration 4)                                      | Merged (ca5730e). Emulator OK: Conversations → History by day, Clear. Metro now on 8089                                             |
 | W14 | Docs match tonight's app: README, SUBMISSION, PITCH, FEATURES                        | Merged (91181de). The team fills the placeholders after the phone test                                                              |
-| W9  | Final merge and checks, release APK, then push, video, submit                        | Code final candidate at 92236a2 (2:15 AM, all checks, regression OK). APK by 2e; then the user at 5 AM                              |
+| W9  | Final merge and checks, release APK, then push, video, submit                        | Release APK from 92b3cfe (Pinsan AI, 139.8 MB), smoke-tested on the emulator by 2e. Then the user at 5 AM                           |
 
 ## File ownership
 

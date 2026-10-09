@@ -1,4 +1,5 @@
 export { ExtractTasksSheet } from './components/extract-tasks-sheet';
+export { JournalList } from './components/journal-list';
 export { NoteEditor } from './components/note-editor';
 export { NotesList } from './components/notes-list';
 export { createNote } from './api/notes';

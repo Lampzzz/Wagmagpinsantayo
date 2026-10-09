@@ -1,4 +1,4 @@
-# Couz: Feature Tracker
+# Couz AI: Feature Tracker
 
 Status of every feature. Tick `[x]` when an item is done, then update the summary table.
 

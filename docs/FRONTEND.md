@@ -1,4 +1,4 @@
-# Front-end direction: Couz
+# Front-end direction: Couz AI
 
 Written Oct 9 on `front-end` for the UI lead and the developer, and merged into
 `development` that night (see "Screens and routes" for what the merge changed). It covers how

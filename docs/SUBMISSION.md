@@ -32,13 +32,13 @@ are no edits or resubmissions, so finish the checklist first.
 
 ### Project name
 
-Couz
+Couz AI
 
 ### Short description
 
-Under 280 characters (273):
+Under 280 characters (276):
 
-> Couz is a private assistant for tasks, reminders and a journal, for Filipino students and
+> Couz AI is a private assistant for tasks, reminders and a journal, for Filipino students and
 > young workers with unreliable mobile data. You talk to Pinsan, a 3D mascot. His AI runs on the
 > phone, so he works in airplane mode, needs no account and keeps your data on the device.
 
@@ -189,7 +189,7 @@ https://github.com/Lampzzz/Wagmagpinsantayo/tree/development
 
 ### Why does this product benefit from running AI locally?
 
-> Couz handles personal things: your plans, your reminders, your journal, your voice, and
+> Couz AI handles personal things: your plans, your reminders, your journal, your voice, and
 > everything you say to Pinsan. Running the AI on the phone changes four things for our users,
 > students and young working Filipinos with unreliable mobile data:
 >

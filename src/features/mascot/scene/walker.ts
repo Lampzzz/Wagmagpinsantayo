@@ -175,6 +175,23 @@ export function stepWalker(dt: number, t: number, mood: MascotMood, eye: Vector3
   walker.phase += (walker.speed / STRIDE + spin * 0.35) * Math.PI * 2 * dt;
 }
 
+/**
+ * The ground under a spot beside Pinsan, given in Pinsan's own frame (facing +z): its height
+ * relative to where Pinsan stands, with its slope written into `normal` in the same frame.
+ * Off the bridge the island is flat, so this is 0 and straight up.
+ */
+export function groundUnder(x: number, z: number, normal: Vector3) {
+  const cos = Math.cos(walker.heading);
+  const sin = Math.sin(walker.heading);
+  const wx = walker.x + x * cos + z * sin;
+  const wz = walker.z - x * sin + z * cos;
+  const e = 0.02;
+  const gx = (groundHeight(wx + e, wz) - groundHeight(wx - e, wz)) / (2 * e);
+  const gz = (groundHeight(wx, wz + e) - groundHeight(wx, wz - e)) / (2 * e);
+  normal.set(-gx * cos + gz * sin, 1, -gx * sin - gz * cos).normalize();
+  return groundHeight(wx, wz) - walker.y;
+}
+
 const raycaster = new Raycaster();
 const pointer = new Vector2();
 const floor = new Plane(new Vector3(0, 1, 0), 0);

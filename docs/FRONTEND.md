@@ -38,27 +38,49 @@ affirmations and quiz content, which are not our product.
 ## Pinsan, the mascot
 
 **Built from three.js primitives, not a downloaded model.** It is original by
-construction, needs no asset pipeline, and every part can be animated directly.
-`components/pinsan.tsx` follows the AI-generated character sheets made during the
-hackathon:
+construction, needs no asset pipeline, and every part can be animated directly. The shapes
+are in `scene/pinsan-shape.ts`, measured off the AI-generated character sheets made during
+the hackathon (front and side silhouettes match the model sheet to about 0.02 units).
+`components/pinsan.tsx` puts them together, paints them and animates them.
 
-- **Model sheet** (front, side, back, top-down with guide lines). The proportions come from
-  its guide lines: 1.7 units tall, the chin at 0.74, the head about as wide as it is tall.
-  - The head is a lathed onion shape that flows into a tapered curl hooking back and to
-    Pinsan's left.
-  - Cat ears stick out on the sides, with tall glossy eyes and an open "D" smile.
-  - Cream shirt with puffed sleeves under sage overalls: buttoned straps, a belly pocket,
-    shorts with rolled cuffs.
-  - Mitten hands with thumbs and boot-like feet.
-- **Detail sheet.** The painted look comes from its texture swatches:
-  `scene/brush-strokes.ts` paints short diagonal dabs in a few shades per material into a
-  small texture made in code.
+- **Model sheet** (front, side, back, top-down with guide lines): 1.7 units tall, the
+  head's widest point at 1.0.
+  - The head is a droplet: a full, round lower half (the cheeks) rising as a cone whose tip
+    leans over into a thick wave of a curl, hooked back and to Pinsan's left. Head and curl
+    are one swept surface, so there is no seam between them.
+  - Plump ears on the sides, tall glossy eyes and an open "D" smile.
+  - Cream shirt with short puffed sleeves growing out of it, under sage overalls: a bib
+    front and back, straps with four-hole wooden buttons, a U-shaped patch pocket, shorts
+    with rolled cuffs.
+  - Mitten hands with thumbs, and round boot feet with flat soles.
+- **Detail sheet.** The painted look comes from its texture swatches, kept quiet:
+  `scene/brush-strokes.ts` paints broad, soft-edged, low-contrast dabs into a small texture
+  per material, made in code. Texture coordinates run around each part, so the strokes
+  follow its form and stay about the same size everywhere.
 - **Expression sheet:** the five moods below.
 - **Walk sheet:** legs swing from the hips, arms swing against them, and the body dips and
   waddles.
 
-`<Pinsan mood="…" />` shows a fixed expression regardless of the shared mood. Use it to make
-the PNG snapshots for the 2D fallback.
+So that it reads as rounded clay:
+
+- Smooth surfaces only: lathes and sweeps with normals taken from their outlines, never
+  faceted primitives, and enough segments that the outline stays round close up.
+- Matte Lambert with wrap lighting (light reaches a little past the edge of each form, as on
+  soft clay), patched into three's shader in `pinsan.tsx`.
+- Contact shading baked into vertex colors where parts crowd each other: under the head,
+  inside the sleeves and cuffs, where the ears meet the head.
+- Soft contact shadows: a broad one under the body and one under each foot that follows
+  the foot and fades as it lifts. On the bridge each foot stands on the deck right under it
+  (`groundUnder` in `scene/walker.ts`), so neither floats nor sinks on the slope.
+
+**Studio (development only).** `exp://<host>:8081/--/studio?view=front&paint=0` shows Pinsan
+alone on the character sheets' light grey, in the island's light. Views: `front`,
+`turnaround`, `walk` (the walk sheet's six poses) and `moods`. `paint=0` hides the brush
+strokes so shape and light can be judged on their own. Check model changes here against the
+sheets before looking at them on the island.
+
+`<Pinsan mood="…" still stride={…} />` shows a fixed expression, holds still, or holds a walk
+pose, whatever the shared state. Use it for the PNG snapshots of the 2D fallback.
 
 The sky is an `expo-linear-gradient` behind the canvas, not a 3D sky. It could tint by time
 of day: peach in the morning, blue during the day, indigo at night.
@@ -145,9 +167,12 @@ The phone runs an LLM at the same time, so the 3D must stay cheap.
    - Edge smoothing (MSAA) is off: `gl={{ antialias: false }}`.
    - Anything that doesn't move is unlit. The island's sunlight is baked into its vertex
      colors (`scene/lighting.ts`), so its 52k triangles are a single unlit draw call.
-   - Only Pinsan is lit live (Lambert, 3 lights). Change the light in `LIGHTS` so the baked
-     light and the live light stay in step.
-   - No shadow maps and no post-processing.
+   - Only Pinsan is lit live (Lambert with wrap lighting, 3 lights). Change the light in
+     `LIGHTS` so the baked light and the live light stay in step.
+   - No shadow maps and no post-processing. Pinsan's contact shadows are soft textured
+     squares on the ground.
+   - Pinsan is about 31k triangles; the whole scene is about 84k triangles in 37 draw calls.
+     Its shapes and textures are built once at startup, about 0.2 s in a development build.
 5. **Judge smoothness on a real phone.** The emulator tops out at 15–30 fps even for an
    empty scene. Development builds show an fps badge in the bottom-left corner.
 6. All text, cards, inputs and buttons are React Native views layered over the canvas.
@@ -165,6 +190,7 @@ src/app/
   notes/[id].tsx       Note editor + AI tools menu (Summarize, Extract Tasks)
   tasks.tsx            Task list with tick-off
   extract-tasks.tsx    formSheet: review extracted tasks before saving (param: noteId)
+  studio.tsx           Development only: Pinsan on grey for checking the model (see above)
 ```
 
 Later, after the MVP: `emergency.tsx` and `health/`, both pushed from the menu button.

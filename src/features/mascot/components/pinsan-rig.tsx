@@ -6,15 +6,9 @@ import { useMascotStore } from '../hooks/use-mascot';
 import { stepWalker, trackView, walker } from '../scene/walker';
 import { Pinsan } from './pinsan';
 
-// Carries Pinsan around the island: moves the walker every frame, then places Pinsan, its
-// shadow and the tap marker from it.
+// Carries Pinsan around the island: moves the walker every frame, then places Pinsan (which
+// draws its own contact shadows) and the tap marker from it.
 
-const SHADOW = new MeshBasicMaterial({
-  color: '#000000',
-  transparent: true,
-  opacity: 0.2,
-  depthWrite: false,
-});
 const MARKER = new MeshBasicMaterial({
   color: '#FFFFFF',
   transparent: true,
@@ -58,9 +52,6 @@ export function PinsanRig({ viewScale }: { viewScale: number }) {
   return (
     <>
       <group ref={rig}>
-        <mesh material={SHADOW} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.015, 0]}>
-          <circleGeometry args={[0.36, 24]} />
-        </mesh>
         <Pinsan />
       </group>
       <mesh ref={marker} material={MARKER} rotation={[-Math.PI / 2, 0, 0]} visible={false}>

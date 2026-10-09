@@ -10,17 +10,11 @@ reminders.**
 
 Open the app and Pinsan, a 3D mascot, is standing on a small island. You tell it
 something, it thinks on-device, and it answers in a speech bubble with the tasks it made.
-Notes and Tasks are one tap away. The world is home base, so there is no tab bar.
+Everything else is in the ☰ menu. The world is home base, so there is no tab bar.
 
-## What we take from Tolan, and what we don't
+## Design patterns
 
-References (Mobbin): [home world](https://mobbin.com/screens/ff79dcbf-b0bc-4576-a362-7fe01841cb38),
-[floating card over world](https://mobbin.com/screens/9e064fe9-0cf0-4809-a4d8-cd8c359b4a80),
-[chat over scene](https://mobbin.com/screens/5a4666e3-bc29-47e2-aa70-5cd14b804afe),
-[tap to text / talk](https://mobbin.com/screens/fef8f596-cf97-475f-bb17-d3ca5fb435f7),
-[input with character](https://mobbin.com/screens/cf502da6-521e-4c6c-b0a6-d5e2c10b19f1).
-
-**Take the patterns:**
+The layout patterns come from companion apps on Mobbin:
 
 - The home screen is a full-bleed 3D scene. The character is the interface, not decoration.
 - Chrome is minimal and floating: round icon buttons in the corners and a small dock at
@@ -32,10 +26,8 @@ References (Mobbin): [home world](https://mobbin.com/screens/ff79dcbf-b0bc-4576-
 - Small celebrations when you finish something.
 - Big rounded pill buttons and chunky, friendly type.
 
-**Don't take the character or the brand.** The plan requires an original mascot. Avoid
-everything that reads as a Tolan: tall pink body, frond or tentacle "hair", a scarf,
-clothes, an alien or planet theme, the Tolan wordmark. We also skip their paywall,
-affirmations and quiz content, which are not our product.
+**The character and the brand are our own.** The plan requires an original mascot, so
+Pinsan takes no other app's character, look, wordmark or assets.
 
 ## Pinsan, the mascot
 
@@ -92,13 +84,13 @@ of day: peach in the morning, blue during the day, indigo at night.
 
 Each mood maps to an app state. All animation is procedural, inside `useFrame`.
 
-| Mood        | When                    | Face and pose                                                        |
-| ----------- | ----------------------- | -------------------------------------------------------------------- |
-| `idle`      | Default                 | Open smile, a blink every 3–5 s, slow bob; strolls around the island |
-| `listening` | Quick Add input focused | Raised brows, small closed smile, leans in; stops and faces you      |
-| `thinking`  | On-device LLM running   | One brow up, one down, wavy mouth, head turns and tilts              |
-| `done`      | Task or note saved      | Closed `^ ^` eyes, big smile, a hop with squash and stretch          |
-| `oops`      | AI or parsing failed    | Worried brows, small open frown, head tilt, a sweat drop             |
+| Mood        | When                  | Face and pose                                                        |
+| ----------- | --------------------- | -------------------------------------------------------------------- |
+| `idle`      | Default               | Open smile, a blink every 3–5 s, slow bob; strolls around the island |
+| `listening` | Mic on, or typing     | Raised brows, small closed smile, leans in; stops and faces you      |
+| `thinking`  | On-device LLM running | One brow up, one down, wavy mouth, head turns and tilts              |
+| `done`      | Task or note saved    | Closed `^ ^` eyes, big smile, a hop with squash and stretch          |
+| `oops`      | AI or parsing failed  | Worried brows, small open frown, head tilt, a sweat drop             |
 
 The plan names `idle`, `thinking` and `done`; build those first. `done` and `oops` are
 reactions: the store sets the mood back to `idle` after 3 seconds.
@@ -151,10 +143,9 @@ Checked against the SDK 57 docs and npm on Oct 9:
   - The first build installs NDK 27.0 and 27.1, CMake 3.22.1 and Android platform 36 by
     itself (about 16 minutes); later builds take about 4.
   - **On Windows, build from a short path outside OneDrive** (for example a clone in
-    `C:\pz`). From `C:\Users\…\OneDrive\Documents\GitHub\Wagmagpinsantayo` the native build
+    `C:\src\pinsan`). From a long path, such as a folder inside OneDrive, the native build
     fails with `ninja: error: mkdir(…): No such file or directory`: CMake 3.22.1's ninja
-    can't handle paths over 260 characters, even with long paths enabled in Windows. Metro
-    can still serve the JavaScript from the usual folder.
+    can't handle paths over 260 characters, even with long paths enabled in Windows.
 - **`@react-three/fiber` 9.8.1** supports React `>=19 <19.4` (we're on 19.2.3) and React
   Native `>=0.78`. Its other peers are `three`, `expo-gl`, `expo-asset` and
   `expo-file-system`. Import `Canvas` from `@react-three/fiber/native`.
@@ -216,7 +207,8 @@ src/app/
   _layout.tsx              Stack: fonts, gesture and keyboard providers, reminder alerts
   index.tsx                Home: the island and Pinsan, no header, with the ☰ button
   conversations/index.tsx  Conversations: chat with Pinsan (on-device AI)
-  journal/index.tsx        Journal: the notes list for now, JournalList once it lands
+  conversations/history    Earlier conversations, by day
+  journal/index.tsx        Journal: notes grouped by day, with search
   tasks/index.tsx          Task list
   reminders/index.tsx      Reminders
   notes/new, [id]          Note editor; notes/voice records a voice note (modal)
@@ -249,29 +241,30 @@ Later, after the MVP: `health/`, pushed from the menu.
 
 ```
 ┌─────────────────────────────┐
-│ Pinsan    ( Today ▾ )    ☰  │  ☰ = round white button, opens the side menu
+│ Pinsan                   ☰  │  ☰ = round white button, opens the side menu
 │ 🔒 Offline · private        │  badge under the title
-│  ┌───────────────────────┐  │
-│  │ Next: Pay bill · 5 PM │  │  Today card (slides down from the pill)
-│  └───────────────────────┘  │
+│                             │
 │      ╭──────────────────╮   │
-│      │ Got it! I'll     │   │  Pinsan's speech bubble = Quick Add confirm card
-│      │ remind you at 5. │   │  [Save]  [Edit]
+│      │ Remind you at    │   │  Pinsan's reply bubble, over his head
+│      │ 5 PM: Pay bill?  │   │  [Save]  [Cancel]
 │      ╰───────┬──────────╯   │
-│            (• ‿ •)          │  3D Pinsan on the island
+│            (• ‿ •)          │  3D Pinsan; the camera glides in while you talk
 │        ~~~~~~~~~~~~~~       │
-│ ┌─────────────────────────┐ │
-│ │ Tell Pinsan anything… ➤ │ │  Quick Add pill (typing sets `listening`)
-│ └─────────────────────────┘ │
+│                             │
+│   [⌨]    (  mic  )          │  keyboard button, mic
+│         Tap to talk         │  hint under the mic
 └─────────────────────────────┘
 ```
 
 - **The top-right corner belongs to ☰.** It floats over the island (48 pt, white at 92% like
   the badge, ink icon). There is no dock and no tab bar: the menu leads everywhere else.
-- **Quick Add confirm** appears as Pinsan's speech bubble, not a separate screen. It shows
-  title, date and time, and reminder type, with Save and Edit. Save sets `done` and plays
-  a haptic.
-- **Today card**: the next reminder and today's task count. Tap to open Tasks.
+- **Talk:** tap the mic to start and tap it again to stop. The camera glides in to Pinsan's
+  face (`focusPinsan()`), and your words appear on a paper note as you speak. The keyboard
+  button opens a text box instead, for a noisy room.
+- **Pinsan's reply** is a speech bubble over his head, not a separate screen. When he
+  proposes a task, a reminder, a note or a journal entry, the bubble shows it with Save and
+  Cancel, and nothing is saved until you tap Save. Save sets `done` and plays a haptic. A
+  call for help asks first, then opens the dialer.
 - **Offline badge**: always visible, under the title. It's the pitch, so make it look good.
 
 ### The side menu
@@ -306,7 +299,7 @@ Later, after the MVP: `health/`, pushed from the menu.
 ## Visual system
 
 The restyle is done. The tokens live in `src/constants/theme.ts`, and the shared primitives in
-`src/components/ui/` and the Notes, Tasks, Reminders, Assistant and AI setup screens use them.
+`src/components/ui/` and the Notes, Tasks, Reminders, Conversations and AI setup screens use them.
 The app stays light-only for the hackathon.
 
 | Token                | Value                                                                  | Use                                                                                   |
@@ -320,7 +313,7 @@ The app stays light-only for the hackathon.
 | `leaf`               | `#6CC57C`                                                              | Done states, ticks                                                                    |
 | `surfaceMuted`       | `#F6EBDD`                                                              | Quiet fills, such as a neutral badge. Put `text` on it; `textMuted` is only 4.4:1     |
 | `borderStrong`       | `#DCCAB4`                                                              | Outlines of chips, ghost buttons and fields                                           |
-| `danger`             | `#C62828`                                                              | Error text, Emergency later: 5.6:1 on white, 5.2:1 on `background`                    |
+| `danger`             | `#C62828`                                                              | Error text, the Emergency row: 5.6:1 on white, 5.2:1 on `background`                  |
 | `dangerFill`         | `#E5484D`                                                              | Red behind an icon only, such as the stop-recording button. Too light for text        |
 | `dangerSurface`      | `#FDECEC`                                                              | Pale red behind `danger` text: 4.9:1                                                  |
 | `sky*`               | dawn `#FFD9B8→#BFE3FF`, day `#8FD3FF→#E8F6FF`, night `#2B2A5C→#5B4B8A` | Home gradient                                                                         |
@@ -333,8 +326,8 @@ The app stays light-only for the hackathon.
   `text` ink, `textMuted` inkMuted, `primary` mango, `onPrimary` ink, `border` `#EFE2D2`.
   `warning` and `success` are darkened so they pass as text on their tinted surfaces.
 - **Shadows** (`SHADOWS`): soft and warm, never hard. `card` for cards and bubbles, `soft` for
-  small raised controls, `primary` for the glow under mango buttons, `bar` for the tab bar.
-  Spread one into a style: `...SHADOWS.card`.
+  small raised controls, `primary` for the glow under mango buttons. Spread one into a
+  style: `...SHADOWS.card`.
 - **Cards:** white, radius `RADII.lg` (20), `SHADOWS.card`. Use `<Card>` from
   `@/components/ui/card`, or spread the same styles when the card itself is a `Pressable`.
 - **Pressed:** controls shrink to `PRESSED_SCALE` (0.96) with
@@ -372,9 +365,6 @@ Timed against the plan's timeline. Fake data until the developer's functions lan
 minutes, set `MASCOT_3D = false`, draw the 2D mascot, and move on. Reliability is 20% of
 the score; the 3D look is part of the 15% for demo quality.
 
-**Tell the developer before step 0:** the plan's starter was "Expo Router tabs". This
-direction uses a Stack with Home as the hub, so don't scaffold `(tabs)/`.
-
 ## The island (scene v2)
 
 The home island is built from the AI-generated top-down map in `docs/design/island-map.png`.
@@ -408,7 +398,6 @@ The home island is built from the AI-generated top-down map in `docs/design/isla
   it existed before Oct 9 2:30 PM, it must be listed under "Existing code and assets" in
   the submission, and the project still has to be mostly built during the hackathon.
 - Which phone is the demo phone? The step-1 gate and the LLM-plus-3D test must run on it.
-- Final mascot look (shape and color) and final app name.
 
 ## Disclosures to add
 

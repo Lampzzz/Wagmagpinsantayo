@@ -1,75 +1,255 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { memo, useState } from 'react';
+import { Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import {
+  KeyboardStickyView,
+  useReanimatedKeyboardAnimation,
+} from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { COLORS, FONT_SIZES, FONTS, RADII, SKY, SPACING } from '@/constants/theme';
-import { Mascot, useMascot, type MascotMood } from '@/features/mascot';
+import { Icon } from '@/components/ui/icon';
+import { IconButton } from '@/components/ui/icon-button';
+import { Text } from '@/components/ui/text';
+import { COLORS, FONT_SIZES, FONTS, RADII, SHADOWS, SKY, SPACING } from '@/constants/theme';
+import { Mascot } from '@/features/mascot';
 
-const MOODS: MascotMood[] = ['idle', 'listening', 'thinking', 'done', 'oops'];
+import { useTalkToPinsan, type TalkStage } from '../hooks/use-talk-to-pinsan';
+import type { BubbleArea } from '../place-bubble';
+import { HomeComposer } from './home-composer';
+import { MicButton } from './mic-button';
+import { PaperNote } from './paper-note';
+import { PinsanBubble, ThinkingBubble } from './pinsan-bubble';
 
+// Under the mic: what a tap does now.
+const MIC_HINTS: Record<TalkStage, string> = {
+  idle: 'Tap to talk',
+  starting: 'Getting ready…',
+  listening: "Tap when you're done",
+  transcribing: 'Writing it down…',
+  thinking: 'Thinking…',
+};
+
+const NOTE_LABELS: Record<TalkStage, string> = {
+  idle: 'You said',
+  starting: 'Getting ready…',
+  listening: 'Listening…',
+  transcribing: 'Writing it down…',
+  thinking: 'You said',
+};
+
+// Kept out of Home's re-renders: the transcript and the text box update it often.
+const Scene = memo(function Scene() {
+  return (
+    <View style={StyleSheet.absoluteFill}>
+      <Mascot />
+    </View>
+  );
+});
+
+/**
+ * Home: Pinsan's island, full screen. Talk to him with the mic, or type with the keyboard
+ * button; he answers in a speech bubble over his head. The top-right corner stays empty for
+ * the menu button, which the route draws over this screen.
+ */
 export function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const { mood, setMood } = useMascot();
+  const talk = useTalkToPinsan();
+  const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
+  const [size, setSize] = useState({ width: 0, height: 0 });
+  const [titleBottom, setTitleBottom] = useState(0);
+  const [bottomTop, setBottomTop] = useState(0);
 
-  const nextMood = () => setMood(MOODS[(MOODS.indexOf(mood) + 1) % MOODS.length]);
+  const area: BubbleArea = {
+    width: size.width,
+    height: size.height,
+    top: Math.max(titleBottom, insets.top) + SPACING.md,
+    bottom: (bottomTop || size.height) - SPACING.md,
+  };
+  const measured = size.width > 0 && titleBottom > 0;
+  const { stage } = talk;
+  const recording = stage === 'starting' || stage === 'listening' || stage === 'transcribing';
+  const showNote =
+    stage === 'listening' || stage === 'transcribing' || (stage === 'thinking' && !!talk.words);
+  // Tapping anywhere else closes the bubble, or the keyboard.
+  const backdrop = talk.composerOpen || (talk.bubble !== null && stage === 'idle');
+
+  const onLayout = (event: LayoutChangeEvent) => {
+    const { width, height } = event.nativeEvent.layout;
+    setSize({ width, height });
+  };
 
   return (
-    <LinearGradient colors={SKY.day} style={styles.fill}>
-      <View style={styles.fill}>
-        <Mascot />
-      </View>
+    <LinearGradient colors={SKY.day} style={styles.fill} onLayout={onLayout}>
+      <Scene />
 
-      <View style={[styles.topBar, { top: insets.top + SPACING.sm }]}>
-        <Text style={styles.title}>Pinsan</Text>
-        <View style={styles.badge}>
+      {backdrop && (
+        <Pressable
+          accessible={false}
+          importantForAccessibility="no"
+          onPress={talk.dismiss}
+          style={StyleSheet.absoluteFill}
+        />
+      )}
+
+      <View
+        pointerEvents="box-none"
+        onLayout={(event) => {
+          const { y, height } = event.nativeEvent.layout;
+          setTitleBottom(y + height);
+        }}
+        style={[styles.titleBlock, { top: insets.top + SPACING.sm }]}
+      >
+        <Text accessibilityRole="header" style={styles.title}>
+          Pinsan
+        </Text>
+        <View
+          accessible
+          accessibilityLabel="Offline and private: everything stays on this phone"
+          style={styles.badge}
+        >
+          <Icon ios="lock.fill" android="lock" color={COLORS.success} size={14} />
           <Text style={styles.badgeText}>Offline · private</Text>
         </View>
       </View>
 
-      {/* Temporary: cycles moods so we can check every animation on the phone. */}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`Mascot mood: ${mood}. Tap for next mood.`}
-        onPress={nextMood}
-        style={({ pressed }) => [
-          styles.moodButton,
-          { bottom: insets.bottom + SPACING.lg },
-          pressed && styles.pressed,
-        ]}
+      {measured &&
+        (stage === 'thinking' ? (
+          <ThinkingBubble area={area} keyboardHeight={keyboardHeight} />
+        ) : talk.bubble ? (
+          <PinsanBubble
+            key={talk.bubble.key}
+            reply={talk.bubble.reply}
+            area={area}
+            keyboardHeight={keyboardHeight}
+            answerable={talk.answerable}
+            interactive={!recording}
+            onPick={talk.answerPick}
+            onConfirm={talk.answerConfirm}
+            onSend={talk.answerFill}
+            onEdit={talk.editProposal}
+            onDismiss={talk.dismiss}
+          />
+        ) : null)}
+
+      <View
+        pointerEvents="box-none"
+        onLayout={(event) => setBottomTop(event.nativeEvent.layout.y)}
+        style={[styles.bottom, { paddingBottom: insets.bottom + SPACING.md }]}
       >
-        <Text style={styles.moodText}>Mood: {mood} → tap</Text>
-      </Pressable>
+        {showNote && (
+          <PaperNote
+            label={NOTE_LABELS[stage]}
+            words={talk.words ?? ''}
+            placeholder="Go ahead, I'm listening…"
+          />
+        )}
+        {talk.composerOpen ? (
+          // Rides up with the keyboard, to just above it.
+          <KeyboardStickyView offset={{ opened: insets.bottom + SPACING.md - SPACING.sm }}>
+            <HomeComposer
+              value={talk.draft}
+              onChangeText={talk.setDraft}
+              onSubmit={talk.submitDraft}
+              onClose={talk.closeComposer}
+              busy={stage === 'thinking'}
+            />
+          </KeyboardStickyView>
+        ) : (
+          <View pointerEvents="box-none" style={styles.controls}>
+            <View style={styles.side}>
+              <IconButton
+                accessibilityLabel="Type to Pinsan"
+                accessibilityHint="Opens a text box"
+                icon={<Icon ios="keyboard" android="keyboard" color={COLORS.text} />}
+                onPress={talk.openComposer}
+                disabled={stage !== 'idle'}
+                style={styles.keyboardButton}
+              />
+            </View>
+            <View style={styles.micColumn}>
+              <MicButton stage={stage} onPress={talk.toggleMic} />
+              <View
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+                style={styles.hint}
+              >
+                <Text style={styles.hintText}>{MIC_HINTS[stage]}</Text>
+              </View>
+            </View>
+            {/* Balances the keyboard button, so the mic stays centered. */}
+            <View style={styles.side} />
+          </View>
+        )}
+      </View>
     </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
-  topBar: {
+  titleBlock: {
+    position: 'absolute',
+    left: SPACING.md,
+    alignItems: 'flex-start',
+    gap: SPACING.xs + 2,
+  },
+  title: {
+    fontFamily: FONTS.display,
+    fontSize: FONT_SIZES.display,
+    lineHeight: 34,
+    color: COLORS.ink,
+  },
+  badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs + 2,
+    paddingHorizontal: SPACING.sm + SPACING.xs,
+    paddingVertical: SPACING.xs + 2,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.surfaceTranslucent,
+    ...SHADOWS.soft,
+  },
+  badgeText: {
+    fontFamily: FONTS.bodyBold,
+    fontSize: FONT_SIZES.caption,
+    color: COLORS.ink,
+  },
+  bottom: {
     position: 'absolute',
     left: SPACING.md,
     right: SPACING.md,
+    bottom: 0,
+    gap: SPACING.md,
+  },
+  controls: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  title: { fontFamily: FONTS.display, fontSize: FONT_SIZES.display, color: COLORS.ink },
-  badge: {
-    backgroundColor: COLORS.surfaceTranslucent,
-    borderRadius: RADII.pill,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
-  },
-  badgeText: { fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.label, color: COLORS.ink },
-  moodButton: {
-    position: 'absolute',
-    alignSelf: 'center',
-    minHeight: 48,
+    alignItems: 'flex-start',
     justifyContent: 'center',
-    backgroundColor: COLORS.mango,
-    borderRadius: RADII.pill,
-    paddingHorizontal: SPACING.lg,
+    gap: SPACING.lg,
   },
-  pressed: { transform: [{ scale: 0.96 }] },
-  moodText: { fontFamily: FONTS.display, fontSize: FONT_SIZES.body, color: COLORS.ink },
+  side: {
+    width: 56,
+    height: 76,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  keyboardButton: {
+    width: 56,
+    height: 56,
+  },
+  micColumn: {
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  hint: {
+    paddingHorizontal: SPACING.sm + SPACING.xs,
+    paddingVertical: SPACING.xs,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.surfaceTranslucent,
+  },
+  hintText: {
+    fontFamily: FONTS.bodyBold,
+    fontSize: FONT_SIZES.caption,
+    color: COLORS.ink,
+  },
 });

@@ -30,7 +30,7 @@ const EXAMPLES = [
 
 /** A conversation for managing tasks and reminders by typing or speaking. */
 export function AssistantChat() {
-  const { messages, busy, availability, send, pick, confirm } = useAssistant();
+  const { messages, busy, availability, send, pick, confirm, clearQuestion } = useAssistant();
   // Newest first, for a list that grows upwards from the composer.
   const newestFirst = useMemo(() => [...messages].reverse(), [messages]);
   const newestId = messages[messages.length - 1]?.id;
@@ -43,9 +43,10 @@ export function AssistantChat() {
         onPick={pick}
         onConfirm={confirm}
         onSend={send}
+        onEdit={clearQuestion}
       />
     ),
-    [newestId, busy, pick, confirm, send],
+    [newestId, busy, pick, confirm, send, clearQuestion],
   );
 
   return (

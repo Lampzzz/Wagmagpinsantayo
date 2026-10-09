@@ -4,6 +4,7 @@ import Animated, { FadeIn } from 'react-native-reanimated';
 import { Icon } from '@/components/ui/icon';
 import { IconButton } from '@/components/ui/icon-button';
 import { COLORS, FONT_SIZES, FONTS, RADII, SHADOWS, SPACING } from '@/constants/theme';
+import { parseEmergency } from '@/features/assistant';
 
 const MAX_MESSAGE_LENGTH = 500;
 
@@ -18,7 +19,8 @@ type HomeComposerProps = {
 
 /** "Tell Pinsan anything…": a text box for when talking out loud won't do. */
 export function HomeComposer({ value, onChangeText, onSubmit, onClose, busy }: HomeComposerProps) {
-  const canSend = value.trim() !== '' && !busy;
+  // While Pinsan thinks, only a call for help can be sent: it can't wait.
+  const canSend = value.trim() !== '' && (!busy || parseEmergency(value) !== null);
   return (
     <Animated.View entering={FadeIn.duration(150)} style={styles.row}>
       <View style={styles.field}>

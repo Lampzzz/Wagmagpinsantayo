@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { memo, useState } from 'react';
-import { Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { Keyboard, Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import {
   KeyboardStickyView,
   useReanimatedKeyboardAnimation,
@@ -70,8 +70,9 @@ export function HomeScreen() {
   const recording = stage === 'starting' || stage === 'listening' || stage === 'transcribing';
   const showNote =
     stage === 'listening' || stage === 'transcribing' || (stage === 'thinking' && !!talk.words);
-  // Tapping anywhere else closes the bubble, or the keyboard.
+  // Tapping anywhere else closes the keyboard (a question waiting stays up), or the bubble.
   const backdrop = talk.composerOpen || (talk.bubble !== null && stage === 'idle');
+  const tapBackdrop = talk.composerOpen ? () => Keyboard.dismiss() : talk.dismiss;
 
   const onLayout = (event: LayoutChangeEvent) => {
     const { width, height } = event.nativeEvent.layout;
@@ -86,7 +87,7 @@ export function HomeScreen() {
         <Pressable
           accessible={false}
           importantForAccessibility="no"
-          onPress={talk.dismiss}
+          onPress={tapBackdrop}
           style={StyleSheet.absoluteFill}
         />
       )}
@@ -119,6 +120,7 @@ export function HomeScreen() {
           <PinsanBubble
             key={talk.bubble.key}
             reply={talk.bubble.reply}
+            aside={talk.bubble.aside}
             area={area}
             keyboardHeight={keyboardHeight}
             answerable={talk.answerable}
@@ -162,7 +164,8 @@ export function HomeScreen() {
                 accessibilityHint="Opens a text box"
                 icon={<Icon ios="keyboard" android="keyboard" color={COLORS.text} />}
                 onPress={talk.openComposer}
-                disabled={stage !== 'idle'}
+                // Open while Pinsan thinks too, for a call for help.
+                disabled={recording}
                 style={styles.keyboardButton}
               />
             </View>

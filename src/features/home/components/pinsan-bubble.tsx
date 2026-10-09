@@ -45,6 +45,8 @@ type BubbleFrameProps = {
 type PinsanBubbleProps = BubbleFrameProps & {
   /** The reply to show; the parent keys this component by reply, so each one springs in. */
   reply: AssistantReply;
+  /** A short line of Pinsan's own under the reply, such as "I didn't catch that". */
+  aside?: string;
   answerable: boolean;
   /** False while you're talking: the bubble stays up to read, but can't be tapped. */
   interactive: boolean;
@@ -58,6 +60,7 @@ type PinsanBubbleProps = BubbleFrameProps & {
 /** Pinsan's speech bubble, hanging over his head, with the reply's items and buttons. */
 export function PinsanBubble({
   reply,
+  aside,
   area,
   keyboardHeight,
   answerable,
@@ -69,8 +72,7 @@ export function PinsanBubble({
   onDismiss,
 }: PinsanBubbleProps) {
   const width = Math.min(area.width - BUBBLE_SIDE_MARGIN * 2, MAX_WIDTH);
-  const { frame, tail, onLayout } = useBubbleMotion(area, keyboardHeight, width);
-  const maxHeight = Math.max(0, area.bottom - area.top - TAIL_LENGTH);
+  const { frame, tail, limit, onLayout } = useBubbleMotion(area, keyboardHeight, width);
 
   return (
     <Animated.View
@@ -78,7 +80,7 @@ export function PinsanBubble({
       pointerEvents={interactive ? 'box-none' : 'none'}
       style={styles.layer}
     >
-      <Animated.View onLayout={onLayout} style={[styles.bubble, { width, maxHeight }, frame]}>
+      <Animated.View onLayout={onLayout} style={[styles.bubble, { width }, limit, frame]}>
         <Animated.View style={[styles.tail, tail]} />
         <ScrollView
           style={styles.scroll}
@@ -95,6 +97,7 @@ export function PinsanBubble({
             size="large"
             accessory={<CloseButton onPress={onDismiss} />}
           />
+          {aside && <Text style={styles.aside}>{aside}</Text>}
         </ScrollView>
       </Animated.View>
     </Animated.View>
@@ -142,7 +145,8 @@ function CloseButton({ onPress }: { onPress: () => void }) {
 
 /**
  * Follows Pinsan's head on the UI thread, clamped inside the area and above the keyboard, and
- * springs in (scale 0.9 → 1 with a fade) once the bubble's size is known.
+ * springs in (scale 0.9 → 1 with a fade) once the bubble's size is known. `limit` keeps a tall
+ * reply inside that space, scrolling, so its buttons never hide behind the composer.
  */
 function useBubbleMotion(
   area: BubbleArea,
@@ -162,12 +166,21 @@ function useBubbleMotion(
     appear.set(withDelay(delayMs, withSpring(1, SPRING)));
   };
 
-  const spot = useDerivedValue(() => {
+  // The lowest the bubble may reach: above the mic, or above the composer and the keyboard.
+  const bottom = useDerivedValue(() => {
     const raised = Math.abs(keyboardHeight.value);
-    const bottom =
-      raised > 0 ? Math.min(area.bottom, area.height - raised - KEYBOARD_CLEARANCE) : area.bottom;
-    return placeBubble(anchor.value, { ...area, bottom }, width, height.value, TAIL_INSET);
+    return raised > 0
+      ? Math.min(area.bottom, area.height - raised - KEYBOARD_CLEARANCE)
+      : area.bottom;
   });
+
+  const spot = useDerivedValue(() =>
+    placeBubble(anchor.value, { ...area, bottom: bottom.value }, width, height.value, TAIL_INSET),
+  );
+
+  const limit = useAnimatedStyle(() => ({
+    maxHeight: Math.max(0, bottom.value - area.top - TAIL_LENGTH),
+  }));
 
   const frame = useAnimatedStyle(() => ({
     opacity: Math.min(appear.value, 1),
@@ -183,7 +196,7 @@ function useBubbleMotion(
     transform: [{ translateX: spot.value.tailX - TAIL_SQUARE / 2 }, { rotate: '45deg' }],
   }));
 
-  return { frame, tail, onLayout };
+  return { frame, tail, limit, onLayout };
 }
 
 const styles = StyleSheet.create({
@@ -232,6 +245,11 @@ const styles = StyleSheet.create({
   },
   closePressed: {
     transform: [{ scale: 0.9 }],
+  },
+  aside: {
+    fontSize: FONT_SIZES.body,
+    lineHeight: 22,
+    color: COLORS.textMuted,
   },
   thinking: {
     flexDirection: 'row',

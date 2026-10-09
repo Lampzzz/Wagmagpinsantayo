@@ -1,3 +1,4 @@
+export { parseEmergency } from './api/parse-emergency';
 export { AssistantChat } from './components/assistant-chat';
 export { ConversationHistory } from './components/conversation-history';
 export { ReplyContent } from './components/reply-content';

@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
 import { ProgressBar } from '@/components/ui/progress-bar';
-import { COLORS, FONT_SIZES, SPACING } from '@/constants/theme';
+import { Text } from '@/components/ui/text';
+import { COLORS, FONT_SIZES, FONTS, SPACING } from '@/constants/theme';
 import { AI_DOWNLOAD_BYTES } from '@/lib/ai';
 
 import { useAiSetup } from '../hooks/use-ai-setup';
@@ -97,8 +98,8 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
   },
   title: {
+    fontFamily: FONTS.display,
     fontSize: FONT_SIZES.heading,
-    fontWeight: '700',
     color: COLORS.text,
   },
   body: {

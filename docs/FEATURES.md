@@ -11,9 +11,9 @@ summary table.
 | --- | ------------------------ | -------------- | -------- |
 | 0   | Foundation               | 🟨 In progress | 1/5      |
 | 1   | Notes                    | ✅ Done        | 14/14    |
-| 2   | Summarize (AI)           | ⬜ Not started | 0/11     |
-| 3   | Extract Tasks (AI)       | ⬜ Not started | 0/10     |
-| 4   | Smart Quick Add (AI)     | ⬜ Not started | 0/14     |
+| 2   | Summarize (AI)           | ✅ Done        | 11/11    |
+| 3   | Extract Tasks (AI)       | 🟨 In progress | 9/10     |
+| 4   | Smart Quick Add (AI)     | 🟨 In progress | 12/14    |
 | 5   | Tasks + Reminders        | 🟨 In progress | 3/14     |
 | 6   | Assistant (text + voice) | 🟨 In progress | 7/12     |
 | –   | Behavior across the app  | ⬜ Not started | 0/6      |
@@ -60,51 +60,51 @@ Write and keep notes on the phone.
 
 Turn a long note into a short summary.
 
-- [ ] Input: the text of one note
-- [ ] Output: 3–5 bullet points with the main points
-- [ ] Copy the summary
-- [ ] Insert the summary at the top of the note
-- [ ] Discard the summary
-- [ ] Runs on the local AI model, no internet
-- [ ] Rule: only uses information from the note, never adds facts
-- [ ] Rule: note under ~50 words is not summarized; user told it's already short
-- [ ] Rule: note over ~1,500 words shows a "may miss details" warning
-- [ ] Error: if the AI fails or times out, the user can retry
-- [ ] Error: the note is never changed unless the user inserts the summary
+- [x] Input: the text of one note
+- [x] Output: 3–5 bullet points with the main points
+- [x] Copy the summary
+- [x] Insert the summary at the top of the note
+- [x] Discard the summary
+- [x] Runs on the local AI model, no internet
+- [x] Rule: only uses information from the note, never adds facts
+- [x] Rule: note under ~50 words is not summarized; user told it's already short
+- [x] Rule: note over ~1,500 words shows a "may miss details" warning
+- [x] Error: if the AI fails or times out, the user can retry
+- [x] Error: the note is never changed unless the user inserts the summary
 
 ## 3. Extract Tasks (AI)
 
 Find the to-dos in a note and turn them into tasks.
 
-- [ ] Input: the text of one note
-- [ ] Output: suggested tasks, each with a title and a due date/time if mentioned
-- [ ] Review screen: untick, edit or remove items, then save
-- [ ] Saved tasks go to the task list
-- [ ] Reminders scheduled for tasks with a due time
-- [ ] Rule: nothing is saved until the user confirms
-- [ ] Rule: AI finds tasks and titles only; code resolves dates ("tomorrow", "Friday", "next Monday")
-- [ ] Rule: task with no date in the note is saved without a due date
-- [ ] Rule: no tasks found → user is told, nothing created
+- [x] Input: the text of one note
+- [x] Output: suggested tasks, each with a title and a due date/time if mentioned
+- [x] Review screen: untick, edit or remove items, then save
+- [x] Saved tasks go to the task list
+- [x] Reminders scheduled for tasks with a due time
+- [x] Rule: nothing is saved until the user confirms
+- [x] Rule: AI finds tasks and titles only; code resolves dates ("tomorrow", "Friday", "next Monday")
+- [x] Rule: task with no date in the note is saved without a due date
+- [x] Rule: no tasks found → user is told, nothing created
 - [ ] Test: "Call Ana tomorrow, finish slides by Friday, buy printer ink." → Call Ana (tomorrow), Finish slides (this Friday), Buy printer ink (no date)
 
 ## 4. Smart Quick Add (AI)
 
 Create a task from one plain-English sentence.
 
-- [ ] Sentence → task with title, date, time and reminder (on, at due time)
+- [x] Sentence → task with title, date, time and reminder (on, at due time)
 - [ ] User can edit any field before saving
-- [ ] Code parses dates: today, tomorrow, weekday names, "next week", "Oct 15"
-- [ ] Code parses times: "5pm", "17:00", "in 2 hours"
-- [ ] AI only cleans up the title (removes date and time words)
-- [ ] Rule: no date → task with no due date
-- [ ] Rule: date but no time → reminder defaults to 9:00 AM that day
-- [ ] Rule: time already passed today → ask if the user meant tomorrow
+- [x] Code parses dates: today, tomorrow, weekday names, "next week", "Oct 15"
+- [x] Code parses times: "5pm", "17:00", "in 2 hours"
+- [x] AI only cleans up the title (removes date and time words)
+- [x] Rule: no date → task with no due date
+- [x] Rule: date but no time → reminder defaults to 9:00 AM that day
+- [x] Rule: time already passed today → ask if the user meant tomorrow
 - [ ] Rule: sentence doesn't look like a task → offer to save as a note
-- [ ] Test: "Pay electric bill tomorrow 5pm"
-- [ ] Test: "Meeting with Carlo Monday 10am"
-- [ ] Test: "Submit report Oct 15"
-- [ ] Test: "Buy groceries"
-- [ ] Test: "Call mom in 2 hours"
+- [x] Test: "Pay electric bill tomorrow 5pm"
+- [x] Test: "Meeting with Carlo Monday 10am"
+- [x] Test: "Submit report Oct 15"
+- [x] Test: "Buy groceries"
+- [x] Test: "Call mom in 2 hours"
 
 ## 5. Tasks + Reminders
 

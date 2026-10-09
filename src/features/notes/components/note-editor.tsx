@@ -1,16 +1,18 @@
 import { Stack } from 'expo-router';
 import { useCallback, useMemo } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 import { Button } from '@/components/ui/button';
 import { HeaderButton } from '@/components/ui/header-button';
 import { Notice } from '@/components/ui/notice';
+import { Text } from '@/components/ui/text';
 import { COLORS, FONT_SIZES, SPACING } from '@/constants/theme';
 import { formatShortDate } from '@/utils/format-short-date';
 
 import { useNoteEditor, type NoteEditorStatus } from '../hooks/use-note-editor';
 import { useUnsavedGuard, type LeaveConfirmation } from '../hooks/use-unsaved-guard';
+import { NoteAiTools } from './note-ai-tools';
 import { NoteFields } from './note-fields';
 
 const UNSAVED_CHANGES: LeaveConfirmation = {
@@ -70,10 +72,17 @@ export function NoteEditor({ noteId, onDeleted }: NoteEditorProps) {
           {editor.saveFailed && (
             <Notice text="Couldn't save your latest changes. Keep editing to try again." />
           )}
+          <NoteAiTools
+            getContent={editor.getContent}
+            getNoteId={editor.getNoteId}
+            onReplace={editor.replaceContent}
+          />
           <NoteFields
+            // Inserting a summary replaces the content, so the fields remount with it.
+            key={editor.revision}
             initial={editor.initial}
             onChange={editor.onChange}
-            autoFocus={noteId === undefined}
+            autoFocus={noteId === undefined && editor.revision === 0}
           />
         </KeyboardAvoidingView>
       ) : (
@@ -103,7 +112,7 @@ type StatusMessageProps = {
 function StatusMessage({ status, onRetry }: StatusMessageProps) {
   switch (status) {
     case 'loading':
-      return <ActivityIndicator color={COLORS.primary} />;
+      return <ActivityIndicator color={COLORS.primaryDark} />;
     case 'missing':
       return (
         <Text style={styles.hint}>{"This note doesn't exist. It may have been deleted."}</Text>

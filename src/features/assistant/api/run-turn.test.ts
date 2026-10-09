@@ -16,20 +16,25 @@ function at(year: number, month: number, day: number, hour = 0, minute = 0) {
   return new Date(year, month - 1, day, hour, minute).getTime();
 }
 
+function endOf(year: number, month: number, day: number) {
+  return new Date(year, month - 1, day, 23, 59, 59, 999).getTime();
+}
+
 // Monday, Oct 5, 2026, 10:00 AM.
 const NOW = at(2026, 10, 5, 10);
 
 /** An in-memory stand-in for the task and reminder services. */
-function createWorld(options: { model?: AssistantDeps['interpretWithModel'] } = {}) {
+function createWorld(options: { model?: AssistantDeps['interpretWithModel']; now?: number } = {}) {
+  const now = options.now ?? NOW;
   const tasks: Task[] = [];
   const reminders: Reminder[] = [];
   let nextId = 1;
   let alert: AlertOutcome = 'scheduled';
-  let failNext = false;
+  let failNext: Action['kind'] | 'any' | null = null;
 
   const execute = async (action: Action): Promise<Outcome> => {
-    if (failNext) {
-      failNext = false;
+    if (failNext === 'any' || failNext === action.kind) {
+      failNext = null;
       throw new Error('Disk full');
     }
     switch (action.kind) {
@@ -111,7 +116,7 @@ function createWorld(options: { model?: AssistantDeps['interpretWithModel'] } = 
       reminders: reminders.map((reminder) => ({ ...reminder })),
     }),
     execute,
-    now: () => NOW,
+    now: () => now,
   };
 
   let state: ConversationState = { pending: null, focus: null };
@@ -132,8 +137,9 @@ function createWorld(options: { model?: AssistantDeps['interpretWithModel'] } = 
     setAlert(outcome: AlertOutcome) {
       alert = outcome;
     },
-    failNextAction() {
-      failNext = true;
+    /** Makes the next action fail, or the next one of this kind. */
+    failNextAction(kind: Action['kind'] | 'any' = 'any') {
+      failNext = kind;
     },
   };
 }
@@ -438,5 +444,238 @@ describe('runTurn: requests it cannot handle', () => {
     expect(reply.text).toContain("Sorry, I couldn't work that out.");
     expect(reply.buttons).toEqual([]);
     expect(world.tasks).toHaveLength(0);
+  });
+});
+
+describe('runTurn: Smart Quick Add', () => {
+  // Thursday, Oct 8, 2026, 2:30 PM.
+  const THURSDAY = at(2026, 10, 8, 14, 30);
+
+  it.each([
+    [
+      'Pay electric bill tomorrow 5pm',
+      'Add "Pay electric bill" for tomorrow at 5:00 PM? I\'ll remind you then.',
+      { title: 'Pay electric bill', dueAt: at(2026, 10, 9, 17), dueHasTime: true },
+      at(2026, 10, 9, 17),
+      [
+        'Added the task "Pay electric bill", due tomorrow at 5:00 PM.',
+        'Reminder set for tomorrow at 5:00 PM: Pay electric bill.',
+      ],
+    ],
+    [
+      'Meeting with Carlo Monday 10am',
+      'Add "Meeting with Carlo" for Mon, Oct 12 at 10:00 AM? I\'ll remind you then.',
+      { title: 'Meeting with Carlo', dueAt: at(2026, 10, 12, 10), dueHasTime: true },
+      at(2026, 10, 12, 10),
+      [
+        'Added the task "Meeting with Carlo", due Mon, Oct 12 at 10:00 AM.',
+        'Reminder set for Mon, Oct 12 at 10:00 AM: Meeting with Carlo.',
+      ],
+    ],
+    [
+      'Submit report Oct 15',
+      'Add "Submit report" for Thu, Oct 15? I\'ll remind you at 9:00 AM that day.',
+      { title: 'Submit report', dueAt: endOf(2026, 10, 15), dueHasTime: false },
+      at(2026, 10, 15, 9),
+      [
+        'Added the task "Submit report", due Thu, Oct 15.',
+        'Reminder set for Thu, Oct 15 at 9:00 AM: Submit report.',
+      ],
+    ],
+    [
+      'Buy groceries',
+      'Add "Buy groceries" with no due date? I won\'t set a reminder.',
+      { title: 'Buy groceries', dueAt: null, dueHasTime: false },
+      null,
+      ['Added the task "Buy groceries".'],
+    ],
+    [
+      'Call mom in 2 hours',
+      'Add "Call mom" for today at 4:30 PM? I\'ll remind you then.',
+      { title: 'Call mom', dueAt: at(2026, 10, 8, 16, 30), dueHasTime: true },
+      at(2026, 10, 8, 16, 30),
+      [
+        'Added the task "Call mom", due today at 4:30 PM.',
+        'Reminder set for today at 4:30 PM (in 2 hours): Call mom.',
+      ],
+    ],
+  ])('proposes %p, then saves it on Save', async (text, prompt, task, remindAt, saved) => {
+    const world = createWorld({ now: THURSDAY });
+
+    const proposal = await world.send(text);
+    expect(proposal.text).toBe(prompt);
+    expect(proposal.question).toMatchObject({
+      kind: 'confirm',
+      prompt,
+      action: { kind: 'create-task', task },
+      yesLabel: 'Save',
+      noLabel: 'Cancel',
+    });
+    expect(world.tasks).toHaveLength(0);
+    expect(world.reminders).toHaveLength(0);
+
+    const reply = await world.send({ kind: 'confirm', yes: true });
+    expect(reply.text).toBe(saved.join('\n'));
+    expect(world.tasks).toEqual([expect.objectContaining({ ...task, priority: 'normal' })]);
+    expect(world.reminders).toEqual(
+      remindAt === null
+        ? []
+        : [
+            expect.objectContaining({
+              title: task.title,
+              scheduledAt: remindAt,
+              taskId: world.tasks[0].id,
+            }),
+          ],
+    );
+    expect(reply.items.map(({ entity }) => entity)).toEqual(
+      remindAt === null ? ['task'] : ['task', 'reminder'],
+    );
+    expect(world.state.pending).toBeNull();
+  });
+
+  it('saves nothing when the user cancels', async () => {
+    const world = createWorld({ now: THURSDAY });
+    await world.send('Buy groceries');
+    expect((await world.send({ kind: 'confirm', yes: false })).text).toBe(
+      'Okay, I didn\'t add "Buy groceries".',
+    );
+    expect(world.tasks).toHaveLength(0);
+  });
+
+  it('takes a typed or spoken "save" as the Save button', async () => {
+    const world = createWorld({ now: THURSDAY });
+    await world.send('Pay electric bill tomorrow 5pm');
+    await world.send('Save.');
+    expect(world.tasks).toHaveLength(1);
+    expect(world.reminders).toHaveLength(1);
+  });
+
+  it('asks about tomorrow when the time already passed today', async () => {
+    const world = createWorld({ now: THURSDAY });
+    const proposal = await world.send('Call mom at 9am');
+    expect(proposal.text).toBe(
+      'That time has already passed today. Add "Call mom" for tomorrow at 9:00 AM? I\'ll remind you then.',
+    );
+    expect(proposal.question).toMatchObject({ yesLabel: 'Yes, tomorrow', noLabel: 'No' });
+
+    await world.send('yes');
+    expect(world.tasks[0]).toMatchObject({ dueAt: at(2026, 10, 9, 9), dueHasTime: true });
+    expect(world.reminders[0]).toMatchObject({ scheduledAt: at(2026, 10, 9, 9) });
+  });
+
+  it('sets no reminder for "today" once 9:00 AM has passed', async () => {
+    const world = createWorld({ now: THURSDAY });
+    expect((await world.send('Water the plants today')).text).toBe(
+      'Add "Water the plants" for today? It\'s already past 9:00 AM, so I won\'t set a reminder.',
+    );
+    await world.send('yes');
+    expect(world.tasks[0]).toMatchObject({ dueAt: endOf(2026, 10, 8), dueHasTime: false });
+    expect(world.reminders).toHaveLength(0);
+  });
+
+  it('keeps "it" on the new task rather than its reminder', async () => {
+    const world = createWorld({ now: THURSDAY });
+    await world.send('Pay electric bill tomorrow 5pm');
+    await world.send('yes');
+    expect((await world.send('Mark it as done')).text).toBe(
+      'Marked "Pay electric bill" as done. Its reminder for tomorrow at 5:00 PM is still on.',
+    );
+  });
+
+  it('says so when the task saved but its reminder failed', async () => {
+    const world = createWorld({ now: THURSDAY });
+    await world.send('Pay electric bill tomorrow 5pm');
+    world.failNextAction('create-reminder');
+    const reply = await world.send('yes');
+    expect(reply.text).toBe(
+      [
+        'Added the task "Pay electric bill", due tomorrow at 5:00 PM.',
+        'Something went wrong, so I couldn\'t set the reminder "Pay electric bill".',
+      ].join('\n'),
+    );
+    expect(world.tasks).toHaveLength(1);
+    expect(world.reminders).toHaveLength(0);
+    expect(reply.isError).toBe(false);
+  });
+
+  it('is honest when notifications are off', async () => {
+    const world = createWorld({ now: THURSDAY });
+    world.setAlert('no-permission');
+    await world.send('Call mom in 2 hours');
+    const reply = await world.send('yes');
+    expect(reply.text).toBe(
+      [
+        'Added the task "Call mom", due today at 4:30 PM.',
+        'I saved the reminder "Call mom" for today at 4:30 PM, but notifications are off, so it can\'t alert you.',
+      ].join('\n'),
+    );
+    expect(reply.buttons).toEqual(['open-settings']);
+  });
+
+  it('never waits for the model on a clear to-do', async () => {
+    const model = jest.fn(async (): Promise<Command[]> => []);
+    const world = createWorld({ model, now: THURSDAY });
+    const reply = await world.send('Pay electric bill tomorrow 5pm');
+    expect(model).not.toHaveBeenCalled();
+    expect(reply.question?.kind).toBe('confirm');
+  });
+
+  it('lets the model decide what an unclear sentence means', async () => {
+    const model = jest.fn(async (): Promise<Command[]> => []);
+    const world = createWorld({ model, now: THURSDAY });
+    for (const text of ["What's the weather like?", 'Groceries tomorrow', 'Hello there']) {
+      const reply = await world.send(text);
+      expect(reply.text).toContain("I'm not sure what you mean.");
+      expect(reply.question).toBeNull();
+    }
+    expect(model).toHaveBeenCalledTimes(3);
+    expect(world.tasks).toHaveLength(0);
+  });
+
+  it('shows back a to-do the model read, with its reminder, before saving', async () => {
+    const model = jest.fn(async (): Promise<Command[]> => [
+      { kind: 'add-task', title: 'call Ana', when: 'tomorrow at 3' },
+    ]);
+    const world = createWorld({ model, now: THURSDAY });
+    expect((await world.send('I need to call Ana tomorrow at 3')).text).toBe(
+      'Add "Call Ana" for tomorrow at 3:00 PM? I\'ll remind you then.',
+    );
+    expect(world.tasks).toHaveLength(0);
+    await world.send('yes');
+    expect(world.tasks[0]).toMatchObject({ title: 'Call Ana', dueAt: at(2026, 10, 9, 15) });
+    expect(world.reminders[0]).toMatchObject({ scheduledAt: at(2026, 10, 9, 15) });
+  });
+
+  it('suggests a wording when it cannot tell and the AI is not set up', async () => {
+    const world = createWorld({ now: THURSDAY });
+    const reply = await world.send('Groceries tomorrow');
+    expect(reply.text).toContain("I'm not sure what you mean.");
+    expect(reply.text).toContain('Try "Pay the electric bill tomorrow at 5 PM"');
+    expect(reply.text).toContain('"Remind me tomorrow at 9 to call Ana"');
+    expect(reply.buttons).toEqual(['set-up-ai']);
+    expect(reply.question).toBeNull();
+    expect(world.tasks).toHaveLength(0);
+  });
+
+  it('leaves the existing wordings on their old paths', async () => {
+    const model = jest.fn(async (): Promise<Command[]> => []);
+    const world = createWorld({ model, now: THURSDAY });
+
+    const task = await world.send('Create a task to buy milk');
+    expect(task.text).toBe('Added the task "Buy milk".');
+    expect(task.question).toBeNull();
+
+    const reminder = await world.send('Remind me in 10 minutes to stretch');
+    expect(reminder.text).toBe('Reminder set for today at 2:40 PM (in 10 minutes): Stretch.');
+    expect(reminder.question).toBeNull();
+
+    const list = await world.send('What tasks do I have today?');
+    expect(list.text).toBe('You have no pending tasks due today.');
+
+    expect(model).not.toHaveBeenCalled();
+    expect(world.tasks).toHaveLength(1);
+    expect(world.reminders).toHaveLength(1);
+    expect(world.reminders[0].taskId).toBeNull();
   });
 });

@@ -261,30 +261,51 @@ Later, after the MVP: `emergency.tsx` and `health/`, both pushed from the menu b
   detents and no native header in a sheet, so the title and Save button go in the sheet
   body. Each row has a checkbox and an editable title, and the button reads "Save 3 tasks".
 
-## Visual system (first draft; tune it)
+## Visual system
 
-These go in `src/constants/theme.ts`. The app stays light-only for the hackathon.
+The restyle is done. The tokens live in `src/constants/theme.ts`, and the shared primitives in
+`src/components/ui/` and the Notes, Tasks, Reminders, Assistant and AI setup screens use them.
+The app stays light-only for the hackathon.
 
-| Token                | Value                                                                  | Use                                                                                     |
-| -------------------- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `ink`                | `#2A2340`                                                              | Main text                                                                               |
-| `inkMuted`           | `#6E6A80`                                                              | Secondary text                                                                          |
-| `surfaceTranslucent` | `#FFFFFF` at 92%                                                       | Cards and bubbles over the scene                                                        |
-| `mango`              | `#FFB627`                                                              | Primary buttons (use **ink** text on it; white fails contrast)                          |
-| `coral`              | `#FF7A6B`                                                              | Accents, the mascot                                                                     |
-| `leaf`               | `#6CC57C`                                                              | Done states, ticks                                                                      |
-| `danger`             | `#C62828`                                                              | Errors, Emergency later. The developer's red: 5.6:1 on white, where `#E5484D` was 3.9:1 |
-| `sky*`               | dawn `#FFD9B8→#BFE3FF`, day `#8FD3FF→#E8F6FF`, night `#2B2A5C→#5B4B8A` | Home gradient                                                                           |
+| Token                | Value                                                                  | Use                                                                                   |
+| -------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `ink`                | `#2A2340`                                                              | Main text                                                                             |
+| `inkMuted`           | `#6E6A80`                                                              | Secondary text                                                                        |
+| `surfaceTranslucent` | `#FFFFFF` at 92%                                                       | Cards and bubbles over the scene                                                      |
+| `mango` / `primary`  | `#FFB627`                                                              | Fills only: primary buttons, selected chips, the user's bubble. Ink text on it, 8.5:1 |
+| `primaryDark`        | `#8A5A00`                                                              | Mango-family text, icons and spinners on light backgrounds: 5.5:1 on `background`     |
+| `coral`              | `#FF7A6B`                                                              | Accents, the mascot                                                                   |
+| `leaf`               | `#6CC57C`                                                              | Done states, ticks                                                                    |
+| `surfaceMuted`       | `#F6EBDD`                                                              | Quiet fills, such as a neutral badge. Put `text` on it; `textMuted` is only 4.4:1     |
+| `borderStrong`       | `#DCCAB4`                                                              | Outlines of chips, ghost buttons and fields                                           |
+| `danger`             | `#C62828`                                                              | Error text, Emergency later: 5.6:1 on white, 5.2:1 on `background`                    |
+| `dangerFill`         | `#E5484D`                                                              | Red behind an icon only, such as the stop-recording button. Too light for text        |
+| `dangerSurface`      | `#FDECEC`                                                              | Pale red behind `danger` text: 4.9:1                                                  |
+| `sky*`               | dawn `#FFD9B8→#BFE3FF`, day `#8FD3FF→#E8F6FF`, night `#2B2A5C→#5B4B8A` | Home gradient                                                                         |
 
-- **Merged with the developer's palette.** `theme.ts` also holds the plain tokens that the
-  Notes, Tasks, Reminders and Assistant screens use: `background`, `surface` (`#F4F6F8`),
-  `text`, `textMuted`, `primary` (`#1F6FEB`), `border` and the status colors. Where names
-  clashed, theirs kept their values. Restyling those screens with this palette is open.
+- **Mango is a fill, never text.** It is 1.8:1 on white, so it only goes behind ink text
+  (`onPrimary`). For text, icons and spinners in the mango family on a light background, use
+  `primaryDark`. Keep all text at 4.5:1 or more.
+- **The developer's names, Pinsan's colors.** The plain tokens the feature screens use kept
+  their names and now hold this palette: `background` is cream `#FFF5E8`, `surface` white,
+  `text` ink, `textMuted` inkMuted, `primary` mango, `onPrimary` ink, `border` `#EFE2D2`.
+  `warning` and `success` are darkened so they pass as text on their tinted surfaces.
+- **Shadows** (`SHADOWS`): soft and warm, never hard. `card` for cards and bubbles, `soft` for
+  small raised controls, `primary` for the glow under mango buttons, `bar` for the tab bar.
+  Spread one into a style: `...SHADOWS.card`.
+- **Cards:** white, radius `RADII.lg` (20), `SHADOWS.card`. Use `<Card>` from
+  `@/components/ui/card`, or spread the same styles when the card itself is a `Pressable`.
+- **Pressed:** controls shrink to `PRESSED_SCALE` (0.96) with
+  `transform: [{ scale: PRESSED_SCALE }]` instead of dimming.
 - **Radii:** 12 / 20 / 28 / pill (`md`, `lg`, `xl`, `pill`; `sm` is 8, for small controls).
   **Spacing:** 4-pt scale. Tap targets ≥ 44 pt.
-- **Type:** Fredoka for headings and buttons (rounded, chunky), Nunito for body. Both are
-  OFL and bundled with `expo-font`, so they work offline. Sizes: `caption` 13, `label` 14,
-  `body` 16, `title` 20, `heading` 26, `display` 28.
+- **Type:** Fredoka (`FONTS.display`) for headings and buttons (rounded, chunky), Nunito
+  (`FONTS.body`, `FONTS.bodyBold`) for body. Both are OFL and bundled with `expo-font`, so they
+  work offline. Sizes: `caption` 13, `label` 14, `body` 16, `title` 20, `heading` 26,
+  `display` 28. Import `Text` from `@/components/ui/text` rather than `react-native` to get
+  Nunito, and give each `TextInput` `fontFamily: FONTS.body`. Pick a font family instead of
+  setting `fontWeight`: Android falls back to the system font when it meets a weight on a font
+  loaded at runtime.
 - **Motion:** Reanimated only. Bubbles and cards enter with a spring (scale from 0.9 plus
   fade). Animate `transform` and `opacity` only.
 - **Voice:** Pinsan speaks in the first person, briefly and warmly. "Got it — I'll remind

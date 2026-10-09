@@ -1,9 +1,10 @@
 import { Link } from 'expo-router';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
 import { Notice } from '@/components/ui/notice';
-import { COLORS, FONT_SIZES, RADII, SPACING } from '@/constants/theme';
+import { Text } from '@/components/ui/text';
+import { COLORS, FONT_SIZES, FONTS, RADII, SHADOWS, SPACING } from '@/constants/theme';
 import { useAiAvailability } from '@/features/ai-setup';
 
 import { useVoiceNote, type VoiceNoteState } from '../hooks/use-voice-note';
@@ -119,7 +120,7 @@ function Hint({ text }: { text: string }) {
 function Busy({ text }: { text: string }) {
   return (
     <View style={styles.busy} accessibilityLiveRegion="polite">
-      <ActivityIndicator color={COLORS.primary} />
+      <ActivityIndicator color={COLORS.primaryDark} />
       <Text style={styles.hint}>{text}</Text>
     </View>
   );
@@ -145,12 +146,13 @@ const styles = StyleSheet.create({
   card: {
     gap: SPACING.sm,
     padding: SPACING.md,
-    borderRadius: RADII.md,
+    borderRadius: RADII.lg,
     backgroundColor: COLORS.surface,
+    ...SHADOWS.card,
   },
   label: {
+    fontFamily: FONTS.bodyBold,
     fontSize: FONT_SIZES.caption,
-    fontWeight: '600',
     color: COLORS.textMuted,
   },
   transcript: {

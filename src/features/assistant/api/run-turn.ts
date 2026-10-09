@@ -25,13 +25,15 @@ import {
 } from './compose-reply';
 import { matchTitle } from './match-title';
 import { parseCommandRules } from './parse-command-rules';
+import { parseQuickAdd } from './parse-quick-add';
 import { resolveCommand, type ResolveContext } from './resolve-command';
 
 export type TurnResult = { reply: AssistantReply; state: ConversationState };
 
 type Work =
   | { kind: 'command'; command: Command; context?: Pick<ResolveContext, 'targetId' | 'confirmed'> }
-  | { kind: 'execute'; action: Action };
+  /** `keepsFocus` leaves "it" on the item before, as for a new task's own reminder. */
+  | { kind: 'execute'; action: Action; keepsFocus?: boolean };
 
 type Answer =
   | { kind: 'cancel' }
@@ -45,6 +47,8 @@ const YES_WORDS =
   /^(?:yes|yeah|yep|yup|sure|ok|okay|do it|go ahead|confirm|correct|right|yes please|please do|that's right|delete it)$/;
 const NO_WORDS = /^(?:no|nope|nah|no thanks|don't|do not|keep it|leave it)$/;
 const NO_DATE_WORDS = /^(?:no date|no due date|no deadline|none|skip|without a date)$/;
+// Words that ask for the task to be saved, not just suggested.
+const ASKS_TO_ADD = /\b(?:add|create|put|save|tasks?|to-?dos?|list)\b/i;
 const ORDINALS = new Map([
   ['1', 0],
   ['first', 0],
@@ -114,10 +118,15 @@ async function startRequest(
   if (isRecurring(text)) return nothingPending(composeRecurring(preface));
 
   let commands = parseCommandRules(text);
+  if (!commands) {
+    // A bare to-do ("Pay electric bill tomorrow 5pm") is read by code, without the model.
+    const quickAdd = parseQuickAdd(text);
+    if (quickAdd) commands = [quickAdd];
+  }
   let modelFailed = false;
   if (!commands && deps.interpretWithModel) {
     try {
-      commands = await deps.interpretWithModel(text);
+      commands = asQuickAdd(await deps.interpretWithModel(text), text);
     } catch {
       modelFailed = true;
     }
@@ -135,6 +144,16 @@ async function startRequest(
   return runWork({ work, skipped: [] }, focus, deps, now, preface);
 }
 
+// A sentence the model reads as one to-do, without "add", "task" or "list", is a
+// Quick Add too: the model only wrote the title, and the user says yes before it's saved.
+function asQuickAdd(commands: Command[], text: string): Command[] {
+  const [only] = commands;
+  if (commands.length !== 1 || only.kind !== 'add-task' || ASKS_TO_ADD.test(text)) {
+    return commands;
+  }
+  return [{ ...only, quickAdd: true }];
+}
+
 async function runWork(
   { work, skipped }: { work: Work[]; skipped: Step[] },
   startFocus: Focus | null,
@@ -143,11 +162,12 @@ async function runWork(
   preface: string[] = [],
 ): Promise<TurnResult> {
   const steps: Step[] = [...skipped];
+  const queue = [...work];
   let focus = startFocus;
   let pending: Pending | null = null;
 
-  for (let index = 0; index < work.length; index++) {
-    const item = work[index];
+  for (let index = 0; index < queue.length; index++) {
+    const item = queue[index];
     // Fresh each time, so a command sees what the ones before it changed.
     const snapshot = await deps.loadSnapshot();
     let action: Action;
@@ -156,7 +176,7 @@ async function runWork(
     } else {
       const resolution = resolveCommand(item.command, snapshot, { now, focus, ...item.context });
       if (resolution.kind === 'ask') {
-        pending = { question: resolution.question, rest: commandsIn(work.slice(index + 1)) };
+        pending = { question: resolution.question, rest: commandsIn(queue.slice(index + 1)) };
         break;
       }
       if (resolution.kind === 'problem') {
@@ -180,11 +200,16 @@ async function runWork(
         outcome,
         remindersStillOn: remindersStillOn(action, snapshot, now),
       });
-      focus = focusAfter(outcome, focus);
+      if (!(item.kind === 'execute' && item.keepsFocus)) focus = focusAfter(outcome, focus);
+      // Quick Add: the new task's reminder is saved next, and reported on its own line.
+      const reminder = reminderForNewTask(action, outcome);
+      if (reminder) {
+        queue.splice(index + 1, 0, { kind: 'execute', action: reminder, keepsFocus: true });
+      }
     } catch {
       // Stop: later commands may depend on this one. Say what didn't happen.
       steps.push({ kind: 'failed', action });
-      for (const later of commandsIn(work.slice(index + 1))) {
+      for (const later of commandsIn(queue.slice(index + 1))) {
         steps.push({ kind: 'not-attempted', command: later });
       }
       focus = null;
@@ -216,20 +241,19 @@ function readAnswer(input: TurnInput, question: Question): Answer {
   }
 
   const text = input.text.trim();
-  const words = text
-    .toLowerCase()
-    .replace(/[.!?,]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .replace(/^(?:the|number)\s+/, '')
-    .replace(/\s+one$/, '');
+  const words = answerWords(text);
   if (CANCEL_WORDS.test(words)) return { kind: 'cancel' };
 
   // Answers that can't be mistaken for a new request.
   switch (question.kind) {
     case 'confirm':
-      if (YES_WORDS.test(words)) return { kind: 'confirm', yes: true };
-      if (NO_WORDS.test(words)) return { kind: 'confirm', yes: false };
+      // Saying a button's label ("Save", "Keep") counts as tapping it.
+      if (YES_WORDS.test(words) || words === answerWords(question.yesLabel)) {
+        return { kind: 'confirm', yes: true };
+      }
+      if (NO_WORDS.test(words) || words === answerWords(question.noLabel)) {
+        return { kind: 'confirm', yes: false };
+      }
       break;
     case 'pick': {
       const index = ORDINALS.get(words) ?? (words === 'last' ? question.options.length - 1 : -1);
@@ -268,6 +292,17 @@ function readAnswer(input: TurnInput, question: Question): Answer {
     return { kind: 'fill', text };
   }
   return { kind: 'new-request' };
+}
+
+// "The second one." → "second"
+function answerWords(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[.!?,]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/^(?:the|number)\s+/, '')
+    .replace(/\s+one$/, '');
 }
 
 function workForAnswer(
@@ -332,6 +367,17 @@ function focusOnListing(listing: Listing): Focus | null {
   if (records.length !== 1) return null;
   const [record] = records;
   return { entity: listing.entity, id: record.id, title: record.title, turnsLeft: 1 };
+}
+
+// A task saved with `remindAt` gets a reminder of its own, linked to it.
+function reminderForNewTask(action: Action, outcome: Outcome): Action | null {
+  if (action.kind !== 'create-task' || action.remindAt === undefined) return null;
+  if (outcome.kind !== 'task-saved') return null;
+  const { task } = outcome;
+  return {
+    kind: 'create-reminder',
+    reminder: { title: task.title, scheduledAt: action.remindAt, taskId: task.id },
+  };
 }
 
 // Reminders set for a task stay on when it's done or deleted. The reply says so.

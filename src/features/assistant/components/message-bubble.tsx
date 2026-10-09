@@ -1,11 +1,20 @@
 import { Link, router } from 'expo-router';
 import { memo } from 'react';
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
 import { Icon } from '@/components/ui/icon';
-import { COLORS, FONT_SIZES, RADII, SPACING } from '@/constants/theme';
+import { Text } from '@/components/ui/text';
+import {
+  COLORS,
+  FONT_SIZES,
+  FONTS,
+  PRESSED_SCALE,
+  RADII,
+  SHADOWS,
+  SPACING,
+} from '@/constants/theme';
 
 import type { ChatMessage } from '../hooks/use-assistant';
 import type { PickOption, Question, ReplyButton, ReplyItem } from '../types';
@@ -165,7 +174,8 @@ const styles = StyleSheet.create({
     maxWidth: '88%',
     gap: SPACING.sm,
     padding: SPACING.md,
-    borderRadius: RADII.md,
+    borderRadius: RADII.lg,
+    ...SHADOWS.card,
   },
   user: {
     alignSelf: 'flex-end',
@@ -204,15 +214,15 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   pressed: {
-    opacity: 0.7,
+    transform: [{ scale: PRESSED_SCALE }],
   },
   itemText: {
     flex: 1,
     gap: 2,
   },
   itemTitle: {
+    fontFamily: FONTS.bodyBold,
     fontSize: FONT_SIZES.body,
-    fontWeight: '600',
     color: COLORS.text,
   },
   itemDetail: {
@@ -227,7 +237,8 @@ const styles = StyleSheet.create({
     minHeight: 48,
     padding: SPACING.sm,
     borderRadius: RADII.sm,
-    borderWidth: 1,
+    borderWidth: 1.5,
+    // A decorative mango outline; the label carries the meaning, in primaryDark.
     borderColor: COLORS.primary,
     backgroundColor: COLORS.background,
   },
@@ -235,9 +246,9 @@ const styles = StyleSheet.create({
     borderColor: COLORS.danger,
   },
   optionLabel: {
+    fontFamily: FONTS.bodyBold,
     fontSize: FONT_SIZES.body,
-    fontWeight: '600',
-    color: COLORS.primary,
+    color: COLORS.primaryDark,
   },
   dangerText: {
     color: COLORS.danger,

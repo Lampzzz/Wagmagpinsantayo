@@ -15,7 +15,18 @@ type Target = {
 
 /** What the user asked for, in their words. Dates and items are looked up later. */
 export type Command =
-  | { kind: 'add-task'; title: string; when?: string; priority?: TaskPriority; notes?: string }
+  | {
+      kind: 'add-task';
+      title: string;
+      when?: string;
+      priority?: TaskPriority;
+      notes?: string;
+      /**
+       * Quick Add: a bare sentence such as "Pay the bill tomorrow 5pm". The task is
+       * shown back for a yes before it's saved, with a reminder at its due time.
+       */
+      quickAdd?: boolean;
+    }
   /** An empty title, or one with "it", links the reminder to the task just touched. */
   | { kind: 'add-reminder'; title: string; when?: string }
   | {
@@ -43,7 +54,8 @@ export type ClosedReminderStatus = 'completed' | 'dismissed' | 'cancelled';
 
 /** A checked request, ready to run. */
 export type Action =
-  | { kind: 'create-task'; task: NewTask }
+  /** `remindAt` also sets a reminder for the new task at that time (Quick Add). */
+  | { kind: 'create-task'; task: NewTask; remindAt?: number }
   | { kind: 'update-task'; task: Task; changes: TaskChanges }
   | { kind: 'set-task-done'; task: Task; done: boolean }
   | { kind: 'delete-task'; task: Task }

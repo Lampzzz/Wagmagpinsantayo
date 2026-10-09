@@ -8,7 +8,6 @@ import {
   Pressable,
   SectionList,
   StyleSheet,
-  Text,
   View,
   type SectionListRenderItem,
 } from 'react-native';
@@ -17,7 +16,16 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
 import { Notice } from '@/components/ui/notice';
-import { COLORS, FONT_SIZES, RADII, SPACING } from '@/constants/theme';
+import { Text } from '@/components/ui/text';
+import {
+  COLORS,
+  FONT_SIZES,
+  FONTS,
+  PRESSED_SCALE,
+  RADII,
+  SHADOWS,
+  SPACING,
+} from '@/constants/theme';
 import { useNow } from '@/hooks/use-now';
 import { capitalize } from '@/utils/capitalize';
 import { formatRelative, formatWhen } from '@/utils/format-when';
@@ -91,7 +99,7 @@ export function ReminderList() {
               <Button label="Try again" onPress={retry} />
             </>
           ) : (
-            <ActivityIndicator color={COLORS.primary} />
+            <ActivityIndicator color={COLORS.primaryDark} />
           )}
         </View>
       )}
@@ -243,27 +251,28 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     paddingTop: SPACING.sm,
+    fontFamily: FONTS.display,
     fontSize: FONT_SIZES.caption,
-    fontWeight: '700',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
     color: COLORS.textMuted,
     backgroundColor: COLORS.background,
   },
   row: {
-    borderRadius: RADII.md,
+    borderRadius: RADII.lg,
     backgroundColor: COLORS.surface,
+    ...SHADOWS.card,
   },
   rowBody: {
     gap: SPACING.xs,
     padding: SPACING.md,
   },
   pressed: {
-    opacity: 0.7,
+    transform: [{ scale: PRESSED_SCALE }],
   },
   rowTitle: {
+    fontFamily: FONTS.bodyBold,
     fontSize: FONT_SIZES.body,
-    fontWeight: '600',
     color: COLORS.text,
   },
   finishedTitle: {
@@ -296,8 +305,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyTitle: {
+    fontFamily: FONTS.display,
     fontSize: FONT_SIZES.title,
-    fontWeight: '700',
     color: COLORS.text,
   },
   hint: {

@@ -1,11 +1,12 @@
 import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, TextInput, View } from 'react-native';
 
 import { Icon } from '@/components/ui/icon';
 import { IconButton } from '@/components/ui/icon-button';
 import { Notice } from '@/components/ui/notice';
-import { COLORS, FONT_SIZES, RADII, SPACING } from '@/constants/theme';
+import { Text } from '@/components/ui/text';
+import { COLORS, FONT_SIZES, FONTS, RADII, SHADOWS, SPACING } from '@/constants/theme';
 import type { AiAvailability } from '@/features/ai-setup';
 import { useDictation, type DictationState } from '@/hooks/use-dictation';
 import { stopSpeaking } from '@/lib/audio/speak';
@@ -75,6 +76,8 @@ export function ChatComposer({ busy, voice, onSend }: ChatComposerProps) {
           onChangeText={setText}
           placeholder={listening ? 'Listening…' : 'Ask about tasks or reminders'}
           placeholderTextColor={COLORS.textMuted}
+          cursorColor={COLORS.text}
+          selectionColor={COLORS.primary}
           accessibilityLabel="Message"
           editable={!recording}
           multiline
@@ -139,7 +142,7 @@ function VoiceStatus({ state, heardNothing }: { state: DictationState; heardNoth
 function Working({ text }: { text: string }) {
   return (
     <View style={styles.working} accessibilityLiveRegion="polite">
-      <ActivityIndicator color={COLORS.primary} />
+      <ActivityIndicator color={COLORS.primaryDark} />
       <Text style={styles.hint}>{text}</Text>
     </View>
   );
@@ -166,21 +169,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     paddingTop: 13,
     paddingBottom: 13,
-    borderRadius: RADII.md,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    borderRadius: RADII.lg,
+    borderWidth: 1.5,
+    borderColor: COLORS.borderStrong,
+    backgroundColor: COLORS.surface,
+    fontFamily: FONTS.body,
     fontSize: FONT_SIZES.body,
     color: COLORS.text,
   },
   transcript: {
     gap: SPACING.xs,
     padding: SPACING.md,
-    borderRadius: RADII.md,
+    borderRadius: RADII.lg,
     backgroundColor: COLORS.surface,
+    ...SHADOWS.card,
   },
   label: {
+    fontFamily: FONTS.bodyBold,
     fontSize: FONT_SIZES.caption,
-    fontWeight: '600',
     color: COLORS.textMuted,
   },
   transcriptText: {

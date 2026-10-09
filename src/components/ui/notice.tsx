@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { COLORS, FONT_SIZES, RADII, SPACING } from '@/constants/theme';
+import { COLORS, FONT_SIZES, FONTS, RADII, SPACING } from '@/constants/theme';
 
 type NoticeProps = {
   text: string;
@@ -17,11 +17,13 @@ export function Notice({ text }: NoticeProps) {
 const styles = StyleSheet.create({
   notice: {
     padding: SPACING.md,
-    borderRadius: RADII.md,
+    borderRadius: RADII.lg,
     backgroundColor: COLORS.warningSurface,
   },
   text: {
+    fontFamily: FONTS.body,
     fontSize: FONT_SIZES.body,
+    lineHeight: 22,
     color: COLORS.warning,
   },
 });

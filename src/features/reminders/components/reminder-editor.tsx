@@ -7,7 +7,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
@@ -17,8 +16,17 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { HeaderButton } from '@/components/ui/header-button';
 import { Notice } from '@/components/ui/notice';
+import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
-import { COLORS, FONT_SIZES, RADII, SPACING } from '@/constants/theme';
+import {
+  COLORS,
+  FONT_SIZES,
+  FONTS,
+  PRESSED_SCALE,
+  RADII,
+  SHADOWS,
+  SPACING,
+} from '@/constants/theme';
 import { useNow } from '@/hooks/use-now';
 import { capitalize } from '@/utils/capitalize';
 import { formatWhen } from '@/utils/format-when';
@@ -65,7 +73,7 @@ function SavedReminder({ id, onClose }: { id: number; onClose: () => void }) {
   if (status === 'loading') {
     return (
       <View style={styles.message}>
-        <ActivityIndicator color={COLORS.primary} />
+        <ActivityIndicator color={COLORS.primaryDark} />
       </View>
     );
   }
@@ -330,22 +338,23 @@ const styles = StyleSheet.create({
     padding: SPACING.md,
   },
   label: {
+    fontFamily: FONTS.bodyBold,
     fontSize: FONT_SIZES.caption,
-    fontWeight: '600',
     color: COLORS.textMuted,
   },
   task: {
     gap: SPACING.xs,
     padding: SPACING.md,
-    borderRadius: RADII.md,
+    borderRadius: RADII.lg,
     backgroundColor: COLORS.surface,
+    ...SHADOWS.card,
   },
   pressed: {
-    opacity: 0.7,
+    transform: [{ scale: PRESSED_SCALE }],
   },
   taskTitle: {
+    fontFamily: FONTS.bodyBold,
     fontSize: FONT_SIZES.body,
-    fontWeight: '600',
     color: COLORS.text,
   },
   statusActions: {

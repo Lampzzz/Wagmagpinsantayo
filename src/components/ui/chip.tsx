@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, type PressableProps } from 'react-native';
 
-import { COLORS, FONT_SIZES, RADII, SPACING } from '@/constants/theme';
+import { COLORS, FONT_SIZES, FONTS, PRESSED_SCALE, RADII, SPACING } from '@/constants/theme';
 
 type ChipProps = Omit<PressableProps, 'children'> & {
   label: string;
@@ -23,7 +23,6 @@ export function Chip({
       accessibilityRole="button"
       accessibilityState={{ selected, disabled: !!disabled }}
       disabled={disabled}
-      hitSlop={{ top: 4, bottom: 4 }}
       style={(state) => [
         styles.base,
         selected && styles.selected,
@@ -49,13 +48,13 @@ export function Chip({
 
 const styles = StyleSheet.create({
   base: {
-    minHeight: 40,
+    minHeight: 44,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
     borderRadius: RADII.pill,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.background,
+    borderWidth: 1.5,
+    borderColor: COLORS.borderStrong,
+    backgroundColor: COLORS.surface,
     justifyContent: 'center',
   },
   selected: {
@@ -64,16 +63,17 @@ const styles = StyleSheet.create({
   },
   danger: {
     borderColor: COLORS.danger,
+    backgroundColor: COLORS.dangerSurface,
   },
   pressed: {
-    opacity: 0.7,
+    transform: [{ scale: PRESSED_SCALE }],
   },
   disabled: {
     opacity: 0.5,
   },
   label: {
+    fontFamily: FONTS.display,
     fontSize: FONT_SIZES.body,
-    fontWeight: '500',
     color: COLORS.text,
   },
   selectedLabel: {

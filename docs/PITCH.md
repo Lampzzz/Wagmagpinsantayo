@@ -3,25 +3,25 @@
 Scripts for the ~1-minute demo video and the 5-minute live pitch, plus likely judge questions.
 Demo Day: 5 minutes of pitch and live demo, then 3 minutes of judge Q&A.
 
-Everything below is in the app on `development`. The voice and AI steps haven't run on a real
-phone yet (the emulator can't run the models), so rehearse them on the demo phone first and cut
-any step that doesn't work there.
+Everything below is in the app on `development`. The voice and AI steps work on our demo phone,
+a POCO X3 GT (the emulator can't run the models). Rehearse on it, and cut any step that fails
+there.
 
 ## Numbers to measure first
 
 Never say a number we haven't measured. Fill these in on the demo phone, or leave them out of
 the pitch.
 
-| What                                                        | Result                  |
-| ----------------------------------------------------------- | ----------------------- |
-| Demo phone model, Android version, RAM                      | [PLACEHOLDER]           |
-| A typed request the rules handle (until the bubble shows)   | [MEASURE ON DEMO PHONE] |
-| A spoken Quick Add on Home, from the second mic tap to Save | [MEASURE ON DEMO PHONE] |
-| A free-form request that goes to the AI                     | [MEASURE ON DEMO PHONE] |
-| A 15-second voice note, from Stop to the draft              | [MEASURE ON DEMO PHONE] |
-| Summarize and Extract Tasks on the seeded note              | [MEASURE ON DEMO PHONE] |
-| Home screen fps, idle and while the AI is thinking          | [MEASURE ON DEMO PHONE] |
-| Battery used by a 5-minute demo run                         | [MEASURE ON DEMO PHONE] |
+| What                                                        | Result           |
+| ----------------------------------------------------------- | ---------------- |
+| Demo phone model, Android version, RAM                      | POCO X3 GT       |
+| A typed request the rules handle (until the bubble shows)   | Not measured yet |
+| A spoken Quick Add on Home, from the second mic tap to Save | Not measured yet |
+| A free-form request that goes to the AI                     | Not measured yet |
+| A 15-second voice note, from Stop to the draft              | Not measured yet |
+| Summarize and Extract Tasks on the seeded note              | Not measured yet |
+| Home screen fps, idle and while the AI is thinking          | Not measured yet |
+| Battery used by a 5-minute demo run                         | Not measured yet |
 
 ## Demo video (~1 minute, airplane mode)
 
@@ -51,10 +51,12 @@ Swap-in shots, if there's time:
   the start, then cut to the alarm screen ringing, and tap Done. Voice-over: "And the alarm rings on
   time, still in airplane mode."
 
-Post it on X or LinkedIn, tag Devin / Cognition and add #AppBuildersPH. Caption:
+Post it on X or LinkedIn, tag Devin / Cognition (@cognition on X, the Cognition page on
+LinkedIn) and add #AppBuildersPH. Caption:
 
 > Couz: talk to Pinsan, a 3D mascot whose AI runs on your phone. Tasks, reminders and a
-> journal, shot in airplane mode. Built during the AppBuilders PH Hackathon 2026. #AppBuildersPH
+> journal, shot in airplane mode. Built during the AppBuilders PH Hackathon 2026. @cognition
+> #AppBuildersPH
 
 ## Live pitch (5 minutes, mostly demo)
 
@@ -123,7 +125,7 @@ speech, the whole download is about 1.1 GB. Its jobs are narrow: turn a sentence
 list of actions, summarize a note, find its to-dos, or tidy a transcript. Code checks every
 output and works out dates, and the common requests skip the model entirely, so a small model is
 enough. LFM2.5 1.2B is made for on-device use and comes ready-made in React Native ExecuTorch.
-Speed on our phone: [MEASURE ON DEMO PHONE].
+On our POCO X3 GT it's fast enough to demo, but we haven't timed it yet.
 
 **2. What happens if there's no download?**
 Notes, the journal, tasks, reminders, Quick Add, every-day reminders, the emergency call and the
@@ -162,7 +164,7 @@ through even while Pinsan is still answering, and the ☰ menu's Emergency row w
 The app has to be open; on a locked phone, the phone's own emergency call is faster.
 
 **7. What about battery and heat?**
-We haven't measured it properly: [MEASURE ON DEMO PHONE]. What helps: the model loads only for a
+We haven't measured it yet. What helps: the model loads only for a
 task and is freed right after, only one model is in memory at a time, common requests skip the
 model entirely, the 3D scene draws at most 15 frames a second while the AI thinks, and it stops
 drawing when you leave Home.
@@ -179,7 +181,7 @@ announce every reply either way.
 
 **10. Which phones can run it?**
 The AI needs Android 13 or newer, and the app checks. It also needs about 1.1 GB of free storage.
-We demo on [PLACEHOLDER: demo phone model]. We haven't tested low-memory phones. On older phones,
+We demo on a POCO X3 GT. We haven't tested low-memory phones. On older phones,
 notes, the journal, tasks, reminders and the rule-based requests still work.
 
 **11. What's new here?**

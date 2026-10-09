@@ -9,11 +9,11 @@ are no edits or resubmissions, so finish the checklist first.
 ## Before you submit
 
 - [ ] Every `[PLACEHOLDER]` in this file, `README.md` and `docs/PITCH.md` is filled in or removed.
-- [ ] Every `[MEASURE ON DEMO PHONE]` in `README.md` and `docs/PITCH.md` is measured on the demo
+- [x] Every `[MEASURE ON DEMO PHONE]` in `README.md` and `docs/PITCH.md` is measured on the demo
       phone, or the line is removed.
-- [ ] The `[DECIDE]` note below is decided, and the answers here and in `README.md` match the
+- [x] The `[DECIDE]` note below is decided, and the answers here and in `README.md` match the
       choice.
-- [ ] After the demo-phone check, every feature that worked is changed from "Done, not yet tested
+- [x] After the demo-phone check, every feature that worked is changed from "Done, not yet tested
       on a phone" to "Done" in `README.md`, and its "(needs the demo phone)" line in
       `docs/FEATURES.md` is ticked.
 - [ ] The final commit is pushed before 10:00 AM. Judges see the repository as of the deadline.
@@ -26,7 +26,7 @@ are no edits or resubmissions, so finish the checklist first.
       (Android 14 and later).
 - [ ] The demo video is posted on X or LinkedIn, tags Devin / Cognition and includes
       #AppBuildersPH.
-- [ ] Team name and member names match the official list at appbuildersph.com/hackathon.
+- [x] Team name and member names match the official list at appbuildersph.com/hackathon.
 
 ## The project
 
@@ -49,9 +49,10 @@ One-line variant:
 
 ### Team members
 
-- Team name: [PLACEHOLDER: official team name]
-- [PLACEHOLDER: member 1 name, as on the official list]
-- [PLACEHOLDER: member 2 name, as on the official list]
+- Team name: Wagmagpinsantayo
+- Aljon Aivan Francisco
+- James Lampaza
+- Rovic Villaralvo
 
 ### Public GitHub repository
 
@@ -102,16 +103,10 @@ https://github.com/Lampzzz/Wagmagpinsantayo/tree/development
 > During that download, react-native-executorch also sends anonymous download statistics: a
 > download-counter request to Hugging Face, and an event to Software Mansion (ai.swmansion.com)
 > with the model file name, the country code from the phone's language setting, the platform,
-> whether it's an emulator and the library version. No user content is sent. We have not
-> switched this off.
+> whether it's an emulator and the library version. No user content is sent. We left this on.
 >
 > No account, no backend and no cloud AI. After the download the app works in airplane mode.
 > (Developers also need internet for npm install and the first native build.)
-
-[DECIDE: turn off with setTelemetryEnabled(false)?] If the team turns the statistics off before
-the freeze, replace the second paragraph above with "The library's anonymous download statistics
-are switched off." and update the same lines in `README.md` and "APIs and cloud services" below.
-Delete this note before submitting.
 
 ## The disclosures
 
@@ -172,7 +167,7 @@ Delete this note before submitting.
 > - Generated with an AI image model during the hackathon: the island layout map
 >   (`docs/design/island-map.png`), Pinsan's character sheets (turnaround, model sheet,
 >   expressions, walk cycle, details) and the scene, prop and sky reference images. Image model:
->   [PLACEHOLDER: name of the AI image model or tool]. Our script `scripts/bake-island.py` turns
+>   ChatGPT's image generation (OpenAI). Our script `scripts/bake-island.py` turns
 >   the map into the ground texture and layout data. Only the map is in the repository.
 > - Design inspiration: layout patterns from companion apps on Mobbin. Pinsan is an original
 >   character, and no assets from other apps are used.
@@ -180,16 +175,15 @@ Delete this note before submitting.
 >   building began at 2:30 PM. They contain no code.
 > - Agent instructions for AI coding tools (`AGENTS.md`, `CLAUDE.md`, `.claude/skills/`) were added
 >   on Oct 9. They are development tooling, not app code.
-> - [PLACEHOLDER: confirm nothing else existed before 2:30 PM on Oct 9, or list it here]
+> - Nothing else existed before building began at 2:30 PM on Oct 9.
 
 ### AI development tools
 
 > - Claude Code (Anthropic): used to plan, write and test code, and write the docs, including the
 >   README, these answers and the pitch script. Several Claude Code sessions worked in parallel.
-> - [PLACEHOLDER: the AI image model used for the island map, character sheets and reference
->   images]
-> - [PLACEHOLDER: any other AI tools used (for example Devin, ChatGPT, GitHub Copilot), or delete
->   this line]
+> - ChatGPT (OpenAI): its image generation made the island map, Pinsan's character sheets and
+>   the scene, prop and sky reference images. We also used it to answer questions.
+> - Figma, with Claude working in it through Figma's connector: used to make the demo video.
 
 ## Required answer
 

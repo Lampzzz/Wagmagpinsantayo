@@ -15,13 +15,13 @@ Status at the code freeze (10:00 AM, Oct 10).
 | #   | Feature                  | Status  | Progress | Open lines             |
 | --- | ------------------------ | ------- | -------- | ---------------------- |
 | 0   | Foundation               | ✅ Done | 5/5      |                        |
-| 1   | Notes                    | ✅ Done | 13/14    | 1 needs the demo phone |
-| 2   | Summarize (AI)           | ✅ Done | 10/11    | 1 needs the demo phone |
+| 1   | Notes                    | ✅ Done | 14/14    |                        |
+| 2   | Summarize (AI)           | ✅ Done | 11/11    |                        |
 | 3   | Extract Tasks (AI)       | ✅ Done | 9/10     | 1 needs the demo phone |
 | 4   | Smart Quick Add          | ✅ Done | 13/14    | 1 rule not built       |
 | 5   | Tasks + Reminders        | ✅ Done | 14/14    |                        |
-| 6   | Assistant (text + voice) | ✅ Done | 13/14    | 1 needs the demo phone |
-| 7   | Home: talk to Pinsan     | ✅ Done | 10/11    | 1 needs the demo phone |
+| 6   | Assistant (text + voice) | ✅ Done | 14/14    |                        |
+| 7   | Home: talk to Pinsan     | ✅ Done | 11/11    |                        |
 | 8   | Journal                  | ✅ Done | 7/7      |                        |
 | 9   | Every-day reminders      | ✅ Done | 7/7      |                        |
 | 10  | Emergency call           | ✅ Done | 8/8      |                        |
@@ -65,8 +65,8 @@ Write and keep notes on the phone. The notes are the journal's entries (section 
 **Voice notes**
 
 - [x] Tap the mic in the Journal, speak, and see a live transcript
-- [ ] AI drafts a title and body from the transcript; "list …" becomes bullet
-      points (needs the demo phone)
+- [x] AI drafts a title and body from the transcript; "list …" becomes bullet
+      points (checked on the demo phone)
 - [x] The draft opens in the editor unsaved; the user edits, then saves or
       discards
 - [x] Rule: AI keeps the user's words and never adds facts: a draft that adds a
@@ -79,7 +79,7 @@ Write and keep notes on the phone. The notes are the journal's entries (section 
 Turn a long note into a short summary, from the note editor.
 
 - [x] Input: the text of one note
-- [ ] Output: 3–5 bullet points with the main points (needs the demo phone; code
+- [x] Output: 3–5 bullet points with the main points (checked on the demo phone; code
       keeps 2–5 bullets)
 - [x] Share the summary (the share sheet offers Copy)
 - [x] Insert the summary at the top of the note
@@ -211,8 +211,8 @@ or in ☰ → Conversations, a chat view of the same assistant.
       9pm") make an every-day reminder (section 9); other repeats ("every
       Monday") are turned down rather than saved as a one-time reminder
 - [x] Works offline; voice and free-form wording need the AI download
-- [ ] Voice and free-form requests are heard and read correctly, at a usable
-      speed (needs the demo phone)
+- [x] Voice and free-form requests are heard and read correctly, at a usable
+      speed (checked on the demo phone)
 
 ## 7. Home: talk to Pinsan
 
@@ -234,8 +234,8 @@ Home is Pinsan's island. You talk to him there, and the ☰ menu opens everythin
 - [x] Before the AI download, the mic says it needs the on-device AI and offers
       Set up AI; typing works
 - [x] The 3D scene draws at most 15 frames a second while the AI thinks
-- [ ] Voice on Home with the 3D scene running next to the models, at a usable
-      speed (needs the demo phone)
+- [x] Voice on Home with the 3D scene running next to the models, at a usable
+      speed (checked on the demo phone)
 
 ## 8. Journal
 

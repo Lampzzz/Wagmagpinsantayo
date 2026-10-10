@@ -130,14 +130,16 @@ https://github.com/Lampzzz/Wagmagpinsantayo/tree/development
 ### Technologies and frameworks
 
 > Expo SDK 57, React Native 0.86, React 19.2, TypeScript, Expo Router, Expo development build
-> (expo-dev-client). On-device AI: React Native ExecuTorch 0.10.5 (Software Mansion), built on
-> ExecuTorch. Data and device: expo-sqlite, expo-file-system, expo-notifications, expo-speech
-> (installed, switched off for now), react-native-audio-api, and React Native's Linking for the
-> dialer. 3D: three.js, React Three Fiber, expo-gl, expo-linear-gradient. UI: Reanimated, React
-> Native Gesture Handler, React Native Keyboard Controller, React Native Screens, Safe Area
-> Context, expo-symbols, Zustand, expo-font with @expo-google-fonts (Fredoka, Nunito). Tooling:
-> Jest (jest-expo), ESLint, Prettier, and Python with Pillow and NumPy for the island bake
-> script.
+> (expo-dev-client), expo-build-properties (Android minimum SDK) and expo-constants. On-device
+> AI: React Native ExecuTorch 0.10.5 (Software Mansion), built on ExecuTorch, with its peer
+> dependencies react-native-blob-util (model file downloads) and react-native-worklets. Data and
+> device: expo-sqlite, expo-file-system, expo-asset (bundled images such as the ground texture),
+> expo-notifications, expo-speech (installed, switched off for now), react-native-audio-api, and
+> React Native's Linking for the dialer. 3D: three.js, React Three Fiber, expo-gl,
+> expo-linear-gradient. UI: Reanimated, React Native Gesture Handler, React Native Keyboard
+> Controller, React Native Screens, Safe Area Context, expo-symbols, Zustand, expo-font with
+> @expo-google-fonts (Fredoka, Nunito). Tooling: Jest (jest-expo), ESLint, Prettier, and Python
+> with Pillow and NumPy for the island bake script.
 
 ### APIs and cloud services
 

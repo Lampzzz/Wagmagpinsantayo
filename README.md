@@ -322,12 +322,13 @@ Full answers are in [docs/SUBMISSION.md](docs/SUBMISSION.md). In short:
   statistics during it. Android's own backup is left at its default (on), so if Google backup is
   on for the phone, Android can include the app's data in it.
 - **Existing code and assets:** the project started from Expo's blank TypeScript template, whose
-  default icons are still in `assets/`. We use open-source libraries and pre-trained models as
-  published, and the Fredoka and Nunito fonts (SIL OFL). All app code was written during the
-  hackathon. Pinsan and the island are built in code from three.js shapes.
-  The island map (`docs/design/island-map.png`), Pinsan's character sheets and the scene
-  reference images were generated with ChatGPT's image generation (OpenAI) during the hackathon.
+  splash image and web favicon are still in `assets/`; its app icons were replaced with Pinsan.
+  We use open-source libraries and pre-trained models as published, and the Fredoka and Nunito
+  fonts (SIL OFL). All app code was written during the hackathon. Pinsan and the island are
+  built in code from three.js shapes. The island map (`docs/design/island-map.png`), the app
+  icon, Pinsan's character sheets and the scene reference images were generated with ChatGPT's
+  image generation (OpenAI) during the hackathon.
 - **AI development tools:** Claude Code (Anthropic) was used to plan, write code and tests, and
-  write these docs. ChatGPT (OpenAI) made the island map, the character sheets and the reference
-  images, and answered questions. Figma, with Claude working in it, was used to make the demo
+  write these docs. ChatGPT (OpenAI) made the island map, the app icon, the character sheets and
+  the reference images, and answered questions. Figma, with Claude working in it, was used to make the demo
   video.

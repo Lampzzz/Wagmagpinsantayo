@@ -1,23 +1,84 @@
 # Couz AI
 
-A private assistant for tasks, reminders and a journal. You talk to Pinsan, a 3D mascot on a
-floating island. His AI runs on your phone, so he works with no signal, needs no account, and
-what you tell him never leaves the device.
-
-"Couz" is Filipino texting slang for cousin, which is what _pinsan_ means in Tagalog.
-
 Built during the AppBuilders PH Hackathon 2026 (theme: Local AI), Oct 9–10, 2026.
 
 - **Demo video:** [PLACEHOLDER: demo video URL]
 - **Team:** Wagmagpinsantayo: Aljon Aivan Francisco, James Lampaza and Rovic Villaralvo
 - **Submission answers and full disclosures:** [docs/SUBMISSION.md](docs/SUBMISSION.md)
 
-## Who it's for
+## Problem
 
-Students and young working Filipinos with unreliable mobile data who want a private assistant.
+Students and young working Filipinos have a lot to keep track of: tasks, reminders, plans and
+their days. But their mobile data is unreliable. It drops out on the commute and in class, and
+it costs money. Cloud assistants stop working when the signal drops, need an account, and send
+what you tell them to a server, even though plans, journals and voice recordings are personal.
 
-Mobile data drops out on the commute and in class, and it costs money. Notes and plans are
-personal. Couz AI keeps them on the phone and keeps working in airplane mode.
+## Project Name
+
+**Couz AI.** "Couz" is Filipino texting slang for cousin, which is what _pinsan_ means in
+Tagalog. The mascot you talk to is Pinsan.
+
+## Brief Description
+
+Couz AI is a private assistant for tasks, reminders and a journal, for Filipino students and
+young workers with unreliable mobile data. You talk to Pinsan, a 3D mascot on a floating island.
+His AI runs on the phone, so he works in airplane mode, needs no account and keeps your data on
+the device.
+
+## Tools
+
+| Area          | What we used                                                                                                                                                                                                                           |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| App           | Expo SDK 57, React Native 0.86, React 19.2, TypeScript (strict), Expo Router, Expo development build (`expo-dev-client`), `expo-build-properties` (Android minimum SDK), `expo-constants`                                              |
+| On-device AI  | React Native ExecuTorch 0.10.5 (`react-native-executorch`, Software Mansion), built on ExecuTorch, PyTorch's on-device runtime, with its peer dependencies `react-native-blob-util` (model file downloads) and `react-native-worklets` |
+| Data          | `expo-sqlite`, `expo-file-system`, `expo-asset` (bundled images such as the ground texture)                                                                                                                                            |
+| Alerts, voice | `expo-notifications`, `react-native-audio-api` (microphone, alarm tone), `expo-speech` (spoken replies, off for now)                                                                                                                   |
+| 3D            | three.js 0.186, React Three Fiber 9.8, `expo-gl`, `expo-linear-gradient`                                                                                                                                                               |
+| UI            | Reanimated 4, React Native Gesture Handler, Keyboard Controller, Screens, Safe Area Context, `expo-symbols`, Zustand                                                                                                                   |
+| Fonts         | Fredoka and Nunito (SIL Open Font License) through `@expo-google-fonts`                                                                                                                                                                |
+| Tooling       | Jest (`jest-expo`), ESLint (`eslint-config-expo`), Prettier, Python with Pillow and NumPy for `scripts/bake-island.py` (optional)                                                                                                      |
+
+AI tools used to build it:
+
+- **Claude Code (Anthropic):** planned, wrote and tested the code, and wrote the docs. Several
+  Claude Code sessions worked in parallel.
+- **ChatGPT (OpenAI):** its image generation made the island map, the app icon, Pinsan's
+  character sheets and the scene reference images. We also used it to answer questions.
+- **Figma, with Claude working in it:** used to make the demo video.
+
+## Assets
+
+- **App icon:** a painted portrait of Pinsan, made with ChatGPT's image generation (OpenAI)
+  during the hackathon (`assets/icon.png` and the `assets/android-icon-*.png` files).
+- **Pinsan and the island:** built in code from three.js shapes. No downloaded 3D models.
+- **Island ground:** the island map (`docs/design/island-map.png`) was made with ChatGPT's image
+  generation. Our script `scripts/bake-island.py` turns it into the ground texture
+  (`assets/scene/island-ground.jpg`) and layout data.
+- **Reference images:** Pinsan's character sheets and the scene, prop and sky references were
+  made with ChatGPT's image generation and used only as references. They aren't in the
+  repository.
+- **Fonts:** Fredoka and Nunito from Google Fonts (SIL Open Font License), bundled through
+  `@expo-google-fonts`.
+- **Sound:** the alarm screen's tone is made in code. Other alerts use the phone's own sounds.
+- **From Expo's blank TypeScript template:** the splash image and web favicon in `assets/`.
+- **Design inspiration:** layout patterns from companion apps on Mobbin. Pinsan is an original
+  character, and no assets from other apps are used.
+
+All app code was written during the hackathon, which started at 2:30 PM on Oct 9.
+
+## Models
+
+| Model                    | What it does in Couz AI                                                                                                                         | Source                                                                    |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| LFM2.5 1.2B (Liquid AI)  | Text model: turns free-form requests into proposed actions, drafts voice notes, summarizes notes and finds the to-dos in a note (Extract Tasks) | `huggingface.co/software-mansion/react-native-executorch-lfm-2.5`         |
+| Whisper base.en (OpenAI) | English speech to text, live while you talk                                                                                                     | `huggingface.co/software-mansion/react-native-executorch-whisper-base.en` |
+| FSMN voice activity      | Finds speech in the live microphone stream, for Whisper                                                                                         | `huggingface.co/software-mansion/react-native-executorch-fsmn-vad`        |
+
+All three are pre-trained and unmodified ExecuTorch exports by Software Mansion, run with React
+Native ExecuTorch. On Android the text model is the quantized XNNPACK export
+(`lfm_2_5_1_2b_xnnpack_8da4w.pte`). They download once, about 1.1 GB, and then run on the phone,
+one at a time. There is no cloud AI. Dates, times and the common requests are handled by code
+with unit tests, not by a model.
 
 ## What it does
 
@@ -276,19 +337,6 @@ scripts/            bake-island.py: turns the island map into the ground texture
 docs/               Features, front-end direction, planning, submission answers, pitch
 ```
 
-## Tech stack
-
-| Area          | What we used                                                                                                                                                                                                                           |
-| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| App           | Expo SDK 57, React Native 0.86, React 19.2, TypeScript (strict), Expo Router, Expo development build (`expo-dev-client`), `expo-build-properties` (Android minimum SDK), `expo-constants`                                              |
-| On-device AI  | React Native ExecuTorch 0.10.5 (`react-native-executorch`, Software Mansion), built on ExecuTorch, PyTorch's on-device runtime, with its peer dependencies `react-native-blob-util` (model file downloads) and `react-native-worklets` |
-| Data          | `expo-sqlite`, `expo-file-system`, `expo-asset` (bundled images such as the ground texture)                                                                                                                                            |
-| Alerts, voice | `expo-notifications`, `react-native-audio-api` (microphone, alarm tone), `expo-speech` (spoken replies, off for now)                                                                                                                   |
-| 3D            | three.js 0.186, React Three Fiber 9.8, `expo-gl`, `expo-linear-gradient`                                                                                                                                                               |
-| UI            | Reanimated 4, React Native Gesture Handler, Keyboard Controller, Screens, Safe Area Context, `expo-symbols`, Zustand                                                                                                                   |
-| Fonts         | Fredoka and Nunito (SIL Open Font License) through `@expo-google-fonts`                                                                                                                                                                |
-| Tooling       | Jest (`jest-expo`), ESLint (`eslint-config-expo`), Prettier, Python with Pillow and NumPy for `scripts/bake-island.py` (optional)                                                                                                      |
-
 ## Known limits
 
 - English only. Taglish and Filipino aren't supported yet.
@@ -312,23 +360,10 @@ docs/               Features, front-end direction, planning, submission answers,
 
 ## Disclosures
 
-Full answers are in [docs/SUBMISSION.md](docs/SUBMISSION.md). In short:
+Tools, assets and models are listed at the top of this README. Full answers are in
+[docs/SUBMISSION.md](docs/SUBMISSION.md).
 
-- **Models:** LFM2.5 1.2B (Liquid AI), Whisper base.en (OpenAI) and FSMN voice-activity
-  detection, as ExecuTorch exports from Software Mansion on Hugging Face. All run on the phone.
-- **Frameworks:** listed under Tech stack.
 - **APIs and cloud services:** no backend, no cloud AI and no accounts. Hugging Face hosts the
   model files for the one-time download, and `react-native-executorch` sends anonymous download
   statistics during it. Android's own backup is left at its default (on), so if Google backup is
   on for the phone, Android can include the app's data in it.
-- **Existing code and assets:** the project started from Expo's blank TypeScript template, whose
-  splash image and web favicon are still in `assets/`; its app icons were replaced with Pinsan.
-  We use open-source libraries and pre-trained models as published, and the Fredoka and Nunito
-  fonts (SIL OFL). All app code was written during the hackathon. Pinsan and the island are
-  built in code from three.js shapes. The island map (`docs/design/island-map.png`), the app
-  icon, Pinsan's character sheets and the scene reference images were generated with ChatGPT's
-  image generation (OpenAI) during the hackathon.
-- **AI development tools:** Claude Code (Anthropic) was used to plan, write code and tests, and
-  write these docs. ChatGPT (OpenAI) made the island map, the app icon, the character sheets and
-  the reference images, and answered questions. Figma, with Claude working in it, was used to make the demo
-  video.

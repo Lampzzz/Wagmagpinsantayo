@@ -278,16 +278,16 @@ docs/               Features, front-end direction, planning, submission answers,
 
 ## Tech stack
 
-| Area          | What we used                                                                                                                      |
-| ------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| App           | Expo SDK 57, React Native 0.86, React 19.2, TypeScript (strict), Expo Router, Expo development build (`expo-dev-client`)          |
-| On-device AI  | React Native ExecuTorch 0.10.5 (`react-native-executorch`, Software Mansion), built on ExecuTorch, PyTorch's on-device runtime    |
-| Data          | `expo-sqlite`, `expo-file-system`                                                                                                 |
-| Alerts, voice | `expo-notifications`, `react-native-audio-api` (microphone, alarm tone), `expo-speech` (spoken replies, off for now)              |
-| 3D            | three.js 0.186, React Three Fiber 9.8, `expo-gl`, `expo-linear-gradient`                                                          |
-| UI            | Reanimated 4, React Native Gesture Handler, Keyboard Controller, Screens, Safe Area Context, `expo-symbols`, Zustand              |
-| Fonts         | Fredoka and Nunito (SIL Open Font License) through `@expo-google-fonts`                                                           |
-| Tooling       | Jest (`jest-expo`), ESLint (`eslint-config-expo`), Prettier, Python with Pillow and NumPy for `scripts/bake-island.py` (optional) |
+| Area          | What we used                                                                                                                                                                                                                           |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| App           | Expo SDK 57, React Native 0.86, React 19.2, TypeScript (strict), Expo Router, Expo development build (`expo-dev-client`), `expo-build-properties` (Android minimum SDK), `expo-constants`                                              |
+| On-device AI  | React Native ExecuTorch 0.10.5 (`react-native-executorch`, Software Mansion), built on ExecuTorch, PyTorch's on-device runtime, with its peer dependencies `react-native-blob-util` (model file downloads) and `react-native-worklets` |
+| Data          | `expo-sqlite`, `expo-file-system`, `expo-asset` (bundled images such as the ground texture)                                                                                                                                            |
+| Alerts, voice | `expo-notifications`, `react-native-audio-api` (microphone, alarm tone), `expo-speech` (spoken replies, off for now)                                                                                                                   |
+| 3D            | three.js 0.186, React Three Fiber 9.8, `expo-gl`, `expo-linear-gradient`                                                                                                                                                               |
+| UI            | Reanimated 4, React Native Gesture Handler, Keyboard Controller, Screens, Safe Area Context, `expo-symbols`, Zustand                                                                                                                   |
+| Fonts         | Fredoka and Nunito (SIL Open Font License) through `@expo-google-fonts`                                                                                                                                                                |
+| Tooling       | Jest (`jest-expo`), ESLint (`eslint-config-expo`), Prettier, Python with Pillow and NumPy for `scripts/bake-island.py` (optional)                                                                                                      |
 
 ## Known limits
 

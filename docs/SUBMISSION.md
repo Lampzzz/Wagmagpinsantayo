@@ -156,8 +156,8 @@ https://github.com/Lampzzz/Wagmagpinsantayo/tree/development
 ### Existing code and assets
 
 > - The project started from Expo's blank TypeScript template (create-expo-app) at 5:00 PM on
->   Oct 9, after building began. The template's default app icons and splash image are still in
->   `assets/`.
+>   Oct 9, after building began. The template's splash image and web favicon are still in
+>   `assets/`. Its app icons were replaced with Pinsan on Oct 10.
 > - Open-source libraries from npm, listed above, used as published.
 > - Fonts: Fredoka and Nunito from Google Fonts (SIL Open Font License), bundled through
 >   @expo-google-fonts.
@@ -166,9 +166,11 @@ https://github.com/Lampzzz/Wagmagpinsantayo/tree/development
 >   from three.js shapes. No downloaded 3D models.
 > - Generated with an AI image model during the hackathon: the island layout map
 >   (`docs/design/island-map.png`), Pinsan's character sheets (turnaround, model sheet,
->   expressions, walk cycle, details) and the scene, prop and sky reference images. Image model:
->   ChatGPT's image generation (OpenAI). Our script `scripts/bake-island.py` turns
->   the map into the ground texture and layout data. Only the map is in the repository.
+>   expressions, walk cycle, details), the scene, prop and sky reference images, and the app icon
+>   (a painted portrait of Pinsan). Image model: ChatGPT's image generation (OpenAI). Our script
+>   `scripts/bake-island.py` turns the map into the ground texture and layout data. Only the map
+>   and the app icon (`assets/icon.png` and the Android icon layers made from it) are in the
+>   repository.
 > - Design inspiration: layout patterns from companion apps on Mobbin. Pinsan is an original
 >   character, and no assets from other apps are used.
 > - Planning notes (rules summary and idea lists) were started during the briefing, before
@@ -181,8 +183,8 @@ https://github.com/Lampzzz/Wagmagpinsantayo/tree/development
 
 > - Claude Code (Anthropic): used to plan, write and test code, and write the docs, including the
 >   README, these answers and the pitch script. Several Claude Code sessions worked in parallel.
-> - ChatGPT (OpenAI): its image generation made the island map, Pinsan's character sheets and
->   the scene, prop and sky reference images. We also used it to answer questions.
+> - ChatGPT (OpenAI): its image generation made the island map, Pinsan's character sheets, the app
+>   icon and the scene, prop and sky reference images. We also used it to answer questions.
 > - Figma, with Claude working in it through Figma's connector: used to make the demo video.
 
 ## Required answer

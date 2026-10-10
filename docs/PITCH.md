@@ -141,7 +141,7 @@ ask if you meant tomorrow. Every-day reminders work; other repeats, like "every 
 turned down instead of saved wrong.
 
 **4. How do you stop it from making things up?**
-The model only proposes actions. Code checks each one against your real tasks and reminders, asks
+The model only suggests actions. Code checks each one against your real tasks and reminders, asks
 when several match, and confirms deletes. Quick Add tasks, journal entries and every-day
 reminders are shown back for a yes before they're saved. Replies are written by code from what
 actually happened, so Pinsan never claims something he didn't do. Voice-note drafts and summary
@@ -165,7 +165,7 @@ The app has to be open; on a locked phone, the phone's own emergency call is fas
 
 **7. What about battery and heat?**
 We haven't measured it yet. What helps: the model loads only for a
-task and is freed right after, only one model is in memory at a time, common requests skip the
+task and is freed right after, the speech and text models take turns, common requests skip the
 model entirely, the 3D scene draws at most 15 frames a second while the AI thinks, and it stops
 drawing when you leave Home.
 

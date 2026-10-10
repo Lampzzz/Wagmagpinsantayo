@@ -78,8 +78,8 @@ https://github.com/Lampzzz/Wagmagpinsantayo/tree/development
 >   the FSMN voice-activity model, through React Native ExecuTorch. Pinsan answers in a speech
 >   bubble on screen.
 > - Text AI: LFM2.5 1.2B through React Native ExecuTorch. It drafts voice notes, summarizes notes,
->   finds the to-dos in a note (Extract Tasks), and turns free-form requests into proposed
->   actions.
+>   finds the to-dos in a note (Extract Tasks), and turns free-form requests into actions that
+>   code checks before they run.
 > - Fixed rules in code, with unit tests, handle the common requests without the model: Smart
 >   Quick Add ("Pay electric bill tomorrow 5pm" becomes a task and a reminder), every-day
 >   reminders ("take my medicine every day at 8 AM"), journal entries ("write in my journal: …")
@@ -91,7 +91,7 @@ https://github.com/Lampzzz/Wagmagpinsantayo/tree/development
 >   dials by itself and needs no phone permission.
 > - The 3D mascot and island are drawn on the phone. Fonts are bundled.
 >
-> Only one model is in memory at a time. Notes, the journal, tasks, reminders, Quick Add,
+> The speech and text models take turns in memory. Notes, the journal, tasks, reminders, Quick Add,
 > every-day reminders, the emergency call and typed requests the rules know work even before the
 > AI download. After the download, everything works in airplane mode.
 
